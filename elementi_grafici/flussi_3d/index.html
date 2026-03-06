@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>EURIX - Flow Fluidodinamico 3D</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <style>
+      /* Sfondo trasparente per i testi HTML in AR */
+      .label-testo { font-family: sans-serif; font-weight: bold; }
+    </style>
+  </head>
+  
+  <body style="margin: 0; overflow: hidden;">
+
+    <a-scene embedded 
+             arjs="sourceType: webcam; detectionMode: mono_and_matrix; matrixCodeType: 3x3; debugUIEnabled: false;"
+             renderer="antialias: true;">
+      
+      <a-marker type="barcode" value="2" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
+        
+        <a-entity rotation="-90 0 0">
+          
+          <a-entity position="0 2 0">
+            
+            <a-text value="Vapore Surriscaldato | Mandata HX-01" position="0 0.7 0" align="center" color="#ffb74d" width="4.5"></a-text>
+            <a-text id="temp-hot-text" value="95.0 °C" position="0 -0.7 0" align="center" color="#ffffff" width="4"></a-text>
+            
+            <a-cylinder radius="0.3" height="4.5" rotation="0 0 90" color="#111" opacity="0.4" transparent="true"></a-cylinder>
+            
+            <a-entity animation="property: position; from: -1.5 0 0; to: 1.5 0 0; loop: true; dur: 2000; easing: linear">
+              <a-cone class="arrow-hot" radius-bottom="0.2" height="0.5" rotation="0 0 -90" position="-1.5 0 0"></a-cone>
+              <a-cone class="arrow-hot" radius-bottom="0.2" height="0.5" rotation="0 0 -90" position="0 0 0"></a-cone>
+              <a-cone class="arrow-hot" radius-bottom="0.2" height="0.5" rotation="0 0 -90" position="1.5 0 0"></a-cone>
+            </a-entity>
+          </a-entity>
+
+          <a-entity position="0 -2 0">
+            
+            <a-text value="Acqua Refrigerata | Ritorno CH-02" position="0 0.7 0" align="center" color="#4fc3f7" width="4.5"></a-text>
+            <a-text id="temp-cold-text" value="7.0 °C" position="0 -0.7 0" align="center" color="#ffffff" width="4"></a-text>
+            
+            <a-cylinder radius="0.3" height="4.5" rotation="0 0 90" color="#111" opacity="0.4" transparent="true"></a-cylinder>
+            
+            <a-entity animation="property: position; from: 1.5 0 0; to: -1.5 0 0; loop: true; dur: 2500; easing: linear">
+              <a-cone class="arrow-cold" radius-bottom="0.2" height="0.5" rotation="0 0 90" position="1.5 0 0"></a-cone>
+              <a-cone class="arrow-cold" radius-bottom="0.2" height="0.5" rotation="0 0 90" position="0 0 0"></a-cone>
+              <a-cone class="arrow-cold" radius-bottom="0.2" height="0.5" rotation="0 0 90" position="-1.5 0 0"></a-cone>
+            </a-entity>
+          </a-entity>
+
+        </a-entity>
+      </a-marker>
+
+      <a-entity camera></a-entity>
+    </a-scene>
+
+    <script>
+      // 1. Funzione matematica per l'interpolazione del colore RGB (Simile a una color map di Matlab)
+      function intersecaColore(rgbStart, rgbEnd, fattore) {
+          // Fattore va da 0.0 a 1.0
+          const r = Math.round(rgbStart[0] + fattore * (rgbEnd[0] - rgbStart[0]));
+          const g = Math.round(rgbStart[1] + fattore * (rgbEnd[1] - rgbStart[1]));
+          const b = Math.round(rgbStart[2] + fattore * (rgbEnd[2] - rgbStart[2]));
+          return `rgb(${r}, ${g}, ${b})`;
+      }
+
+      // Selettori degli elementi 3D
+      const frecceCalde = document.querySelectorAll('.arrow-hot');
+      const frecceFredde = document.querySelectorAll('.arrow-cold');
+      const testoCaldo = document.getElementById('temp-hot-text');
+      const testoFreddo = document.getElementById('temp-cold-text');
+
+      // Variabili di stato iniziale
+      let tempCalda = 95.0;
+      let tempFredda = 7.0;
+
+      // 2. Loop di calcolo Termodinamico e Visivo (ogni 500 ms)
+      setInterval(() => {
+          // Simulazione dell'oscillazione termica
+          tempCalda += (Math.random() * 2 - 1); // Oscilla tra -1 e +1
+          tempFredda += (Math.random() * 0.6 - 0.3); // Oscilla più dolcemente
+
+          // Aggiornamento dei testi in AR
+          testoCaldo.setAttribute('value', `${tempCalda.toFixed(1)} °C`);
+          testoFreddo.setAttribute('value', `${tempFredda.toFixed(1)} °C`);
+
+          // --- CALCOLO GRADIENTE CALDO ---
+          // Mappiamo da 85°C a 105°C per ottenere un fattore da 0.0 a 1.0
+          let fattoreCaldo = (tempCalda - 85) / (105 - 85);
+          if (fattoreCaldo > 1) fattoreCaldo = 1; if (fattoreCaldo < 0) fattoreCaldo = 0;
+          
+          // Da Giallo/Arancio [255, 165, 0] a Rosso Fuoco [255, 0, 0]
+          const coloreCaldo = intersecaColore([255, 165, 0], [255, 0, 0], fattoreCaldo);
+          
+          // Applica il nuovo colore ai vettori 3D
+          frecceCalde.forEach(freccia => freccia.setAttribute('color', coloreCaldo));
+
+
+          // --- CALCOLO GRADIENTE FREDDO ---
+          // Mappiamo da 2°C a 12°C per ottenere un fattore da 0.0 a 1.0
+          let fattoreFreddo = (tempFredda - 2) / (12 - 2);
+          if (fattoreFreddo > 1) fattoreFreddo = 1; if (fattoreFreddo < 0) fattoreFreddo = 0;
+          
+          // Da Blu Ghiaccio intenso [0, 0, 255] a Ciano/Azzurro [0, 255, 255]
+          const coloreFreddo = intersecaColore([0, 0, 255], [0, 255, 255], fattoreFreddo);
+          
+          // Applica il nuovo colore ai vettori 3D
+          frecceFredde.forEach(freccia => freccia.setAttribute('color', coloreFreddo));
+
+      }, 500);
+    </script>
+  </body>
+</html>
