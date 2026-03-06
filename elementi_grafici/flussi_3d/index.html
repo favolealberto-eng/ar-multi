@@ -2,12 +2,15 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>EURIX - Flow Fluidodinamico 3D con Targhette</title>
+    <title>EURIX - Flow 3D & Canvas UI</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
   </head>
   
   <body style="margin: 0; overflow: hidden;">
+
+    <canvas id="canvas-hot" width="1024" height="256" style="display:none;"></canvas>
+    <canvas id="canvas-cold" width="1024" height="256" style="display:none;"></canvas>
 
     <a-scene embedded 
              arjs="sourceType: webcam; detectionMode: mono_and_matrix; matrixCodeType: 3x3; debugUIEnabled: false;"
@@ -19,10 +22,7 @@
           
           <a-entity position="0 2 0">
             
-            <a-plane position="0 1.2 0" width="3.8" height="1" material="color: #0f172a; opacity: 0.85; shader: flat;">
-                <a-text value="Vapore Surriscaldato | Mandata" position="0 0.25 0.02" align="center" color="#ffb74d" width="4"></a-text>
-                <a-text id="temp-hot-text" value="95.0 °C" position="0 -0.2 0.02" align="center" color="#ffffff" width="4.5"></a-text>
-            </a-plane>
+            <a-plane id="plane-hot" position="0 1.2 0" width="3.8" height="0.95" material="src: #canvas-hot; transparent: true; shader: flat;"></a-plane>
             
             <a-cylinder radius="0.3" height="4.5" rotation="0 0 90" color="#111" opacity="0.4" transparent="true"></a-cylinder>
             
@@ -35,10 +35,7 @@
 
           <a-entity position="0 -2 0">
             
-            <a-plane position="0 -1.2 0" width="3.8" height="1" material="color: #0f172a; opacity: 0.85; shader: flat;">
-                <a-text value="Acqua Refrigerata | Ritorno" position="0 0.25 0.02" align="center" color="#4fc3f7" width="4"></a-text>
-                <a-text id="temp-cold-text" value="7.0 °C" position="0 -0.2 0.02" align="center" color="#ffffff" width="4.5"></a-text>
-            </a-plane>
+            <a-plane id="plane-cold" position="0 -1.2 0" width="3.8" height="0.95" material="src: #canvas-cold; transparent: true; shader: flat;"></a-plane>
             
             <a-cylinder radius="0.3" height="4.5" rotation="0 0 90" color="#111" opacity="0.4" transparent="true"></a-cylinder>
             
@@ -56,6 +53,7 @@
     </a-scene>
 
     <script>
+      // MATEMATICA COLORI
       function intersecaColore(rgbStart, rgbEnd, fattore) {
           const r = Math.round(rgbStart[0] + fattore * (rgbEnd[0] - rgbStart[0]));
           const g = Math.round(rgbStart[1] + fattore * (rgbEnd[1] - rgbStart[1]));
@@ -63,21 +61,69 @@
           return `rgb(${r}, ${g}, ${b})`;
       }
 
+      // VARIABILI 3D
       const frecceCalde = document.querySelectorAll('.arrow-hot');
       const frecceFredde = document.querySelectorAll('.arrow-cold');
-      const testoCaldo = document.getElementById('temp-hot-text');
-      const testoFreddo = document.getElementById('temp-cold-text');
+
+      // VARIABILI CANVAS 2D
+      const ctxHot = document.getElementById('canvas-hot').getContext('2d');
+      const ctxCold = document.getElementById('canvas-cold').getContext('2d');
 
       let tempCalda = 95.0;
       let tempFredda = 7.0;
 
+      // FUNZIONE DI DISEGNO DELLE TARGHETTE HD
+      function aggiornaTarghette() {
+          // --- DISEGNO TARGHETTA CALDA ---
+          // Sfondo scuro trasparente per evitare il bianco brutto fuori dal bordo
+          ctxHot.clearRect(0, 0, 1024, 256); 
+          ctxHot.fillStyle = '#0f172a';
+          ctxHot.beginPath();
+          ctxHot.roundRect(10, 10, 1004, 236, 40); // Crea il bordo arrotondato
+          ctxHot.fill();
+
+          ctxHot.textAlign = 'center';
+          ctxHot.fillStyle = '#ffb74d';
+          ctxHot.font = 'bold 50px sans-serif';
+          ctxHot.fillText('VAPORE SURRISCALDATO | MANDATA', 512, 90);
+          
+          ctxHot.fillStyle = '#ffffff';
+          ctxHot.font = 'bold 110px monospace';
+          ctxHot.fillText(`${tempCalda.toFixed(1)} °C`, 512, 210);
+
+          // --- DISEGNO TARGHETTA FREDDA ---
+          ctxCold.clearRect(0, 0, 1024, 256);
+          ctxCold.fillStyle = '#0f172a';
+          ctxCold.beginPath();
+          ctxCold.roundRect(10, 10, 1004, 236, 40);
+          ctxCold.fill();
+
+          ctxCold.textAlign = 'center';
+          ctxCold.fillStyle = '#4fc3f7';
+          ctxCold.font = 'bold 50px sans-serif';
+          ctxCold.fillText('ACQUA REFRIGERATA | RITORNO', 512, 90);
+          
+          ctxCold.fillStyle = '#ffffff';
+          ctxCold.font = 'bold 110px monospace';
+          ctxCold.fillText(`${tempFredda.toFixed(1)} °C`, 512, 210);
+
+          // --- COMUNICAZIONE ALLA SCHEDA VIDEO (Aggiorna le Texture 3D) ---
+          const pHot = document.getElementById('plane-hot');
+          const pCold = document.getElementById('plane-cold');
+          if(pHot && pHot.getObject3D('mesh')) pHot.getObject3D('mesh').material.map.needsUpdate = true;
+          if(pCold && pCold.getObject3D('mesh')) pCold.getObject3D('mesh').material.map.needsUpdate = true;
+      }
+
+      // LOOP PRINCIPALE
       setInterval(() => {
+          // 1. Simula l'oscillazione termodinamica
           tempCalda += (Math.random() * 2 - 1); 
           tempFredda += (Math.random() * 0.6 - 0.3); 
 
-          testoCaldo.setAttribute('value', `${tempCalda.toFixed(1)} °C`);
-          testoFreddo.setAttribute('value', `${tempFredda.toFixed(1)} °C`);
+          // 2. Ridisegna le etichette Canvas
+          aggiornaTarghette();
 
+          // 3. Calcola l'interpolazione vettoriale (Color Map 3D)
           let fattoreCaldo = (tempCalda - 85) / (105 - 85);
           if (fattoreCaldo > 1) fattoreCaldo = 1; if (fattoreCaldo < 0) fattoreCaldo = 0;
           const coloreCaldo = intersecaColore([255, 165, 0], [255, 0, 0], fattoreCaldo);
@@ -88,7 +134,10 @@
           const coloreFreddo = intersecaColore([0, 0, 255], [0, 255, 255], fattoreFreddo);
           frecceFredde.forEach(freccia => freccia.setAttribute('color', coloreFreddo));
 
-      }, 500);
+      }, 500); // Si aggiorna ogni mezzo secondo
+
+      // Disegna le targhette subito all'avvio
+      aggiornaTarghette();
     </script>
   </body>
 </html>
