@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  </head>
+  <body style="margin: 0; overflow: hidden;">
+    <a-scene webxr="optionalFeatures: hit-test, anchors;" 
+             ar-hit-test="target: #mirino; type: floor;"
+             renderer="colorManagement: true;">
+      
+      <a-assets>
+        <a-mixin id="pannello" 
+                 geometry="primitive: plane; width: 0.8; height: 0.5" 
+                 material="color: #121212; opacity: 0.9; side: double"
+                 text="align: center; width: 2; color: #00FF00; 
+                       value: MONITORAGGIO EURIX\nDATI OK\nTOCCA PER PIAZZARE">
+        </a-mixin>
+      </a-assets>
+
+      <a-entity id="mirino">
+        <a-ring color="cyan" rotation="-90 0 0" radius-inner="0.08" radius-outer="0.1"></a-ring>
+      </a-entity>
+
+      <a-entity id="mondo-reale"></a-entity>
+
+      <a-camera position="0 0 0">
+        <a-entity cursor="fuse: false; rayOrigin: mouse;"></a-entity>
+      </a-camera>
+    </a-scene>
+
+    <script>
+      const scene = document.querySelector('a-scene');
+      const mondo = document.querySelector('#mondo-reale');
+      const mirino = document.querySelector('#mirino');
+
+      // Questa funzione viene chiamata ad ogni tocco dello schermo
+      scene.addEventListener('mousedown', function () {
+        // Se il mirino è visibile, prendiamo la sua posizione
+        const posizioneAttuale = mirino.object3D.position;
+        
+        // Se la posizione non è zero (cioè se sta toccando un piano)
+        if (posizioneAttuale.y !== 0 || posizioneAttuale.x !== 0) {
+          const p = document.createElement('a-entity');
+          p.setAttribute('mixin', 'pannello');
+          
+          // Posizioniamo il pannello leggermente sopra il mirino
+          p.setAttribute('position', {
+            x: posizioneAttuale.x, 
+            y: posizioneAttuale.y + 0.25, 
+            z: posizioneAttuale.z
+          });
+          
+          // Lo facciamo ruotare verso la camera
+          p.setAttribute('rotation', '-10 0 0');
+          
+          mondo.appendChild(p);
+          console.log("Pannello piazzato a:", posizioneAttuale);
+        }
+      });
+    </script>
+  </body>
+</html>
