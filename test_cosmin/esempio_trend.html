@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Dynamic AR Chart</title>
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.7/aframe/build/aframe-ar.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body style="margin:0; overflow:hidden">
+
+<a-scene embedded vr-mode-ui="enabled:false"
+         renderer="antialias:true; logarithmicDepthBuffer:true;"
+         arjs="sourceType:webcam; facingMode:environment; debugUIEnabled:false;">
+
+  <a-marker preset="hiro">
+    <a-plane id="chart-plane" position="0 0 0" rotation="-90 0 0" width="1.5" height="0.8" 
+             material="shader: flat; src: #chart-canvas"></a-plane>
+  </a-marker>
+
+  <a-entity camera></a-entity>
+</a-scene>
+
+<!-- Hidden canvas for Chart.js -->
+<canvas id="chart-canvas" width="600" height="320" style="display:none"></canvas>
+
+<script>
+const ctx = document.getElementById('chart-canvas').getContext('2d');
+
+const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: ['Mon','Tue','Wed','Thu','Fri','Sat'],
+        datasets: [{
+            label: 'Temperature',
+            data: [12,15,18,20,17,14],
+            borderColor: '#00FFFF',
+            backgroundColor: 'rgba(0,255,255,0.2)',
+            tension: 0.4, // smooth curve
+            fill: true,
+            pointRadius: 5,
+            pointBackgroundColor: '#00FFFF'
+        }]
+    },
+    options: {
+        responsive: false,
+        animation: {
+            duration: 1000
+        },
+        scales: {
+            y: {
+                min: 10,
+                max: 22
+            }
+        },
+        plugins: {
+            legend: { display: false },
+            tooltip: { enabled: true }
+        }
+    }
+});
+
+// Example: dynamically update the chart every 2 seconds
+setInterval(() => {
+    const newTemp = Math.floor(Math.random() * 10) + 12;
+    chart.data.datasets[0].data.shift();
+    chart.data.datasets[0].data.push(newTemp);
+    chart.update();
+}, 2000);
+</script>
+
+</body>
+</html>
