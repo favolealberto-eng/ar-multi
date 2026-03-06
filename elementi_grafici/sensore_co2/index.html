@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>EURIX - Monitoraggio IAQ (Canvas UI)</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  </head>
+  
+  <body style="margin: 0; overflow: hidden;">
+
+    <canvas id="iaq-canvas" width="1600" height="900" style="display:none;"></canvas>
+
+    <a-scene embedded 
+             arjs="sourceType: webcam; detectionMode: mono_and_matrix; matrixCodeType: 3x3; debugUIEnabled: false;"
+             renderer="antialias: true;">
+      
+      <a-marker type="barcode" value="2" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
+        <a-entity rotation="-75 0 0">
+          <a-plane position="0 2 0" width="6.4" height="3.6" material="src: #iaq-canvas; shader: flat;"></a-plane>
+        </a-entity>
+      </a-marker>
+
+      <a-entity camera look-controls="enabled: false" wasd-controls="enabled: false"></a-entity>
+    </a-scene>
+
+    <script>
+      const canvas = document.getElementById('iaq-canvas');
+      const ctx = canvas.getContext('2d');
+
+      // VARIABILI SIMULATE
+      let co2 = 450; 
+      let temp = 22.5;
+      let umidita = 45.0;
+      const setpoint = 22.0;
+
+      // MOTORE DATI: Fluttuazioni casuali
+      setInterval(() => {
+          co2 += (Math.random() * 40 - 15); // Oscilla tendendo a salire leggermente
+          if (co2 < 400) co2 = 400; // Limite minimo atmosferico
+          if (co2 > 2000) co2 = 2000;
+
+          temp += (Math.random() * 0.4 - 0.2);
+          umidita += (Math.random() * 1.0 - 0.5);
+      }, 1000);
+
+      // MOTORE GRAFICO
+      function disegnaPannello() {
+          // 1. Sfondo Base
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(0, 0, 1600, 900);
+
+          // 2. Titolo Principale
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 60px sans-serif';
+          ctx.fillText('MONITORAGGIO AMBIENTALE - SALA 1', 80, 100);
+
+          // ==========================================
+          // SEZIONE 1: SCALA GRADUATA CO2
+          // ==========================================
+          ctx.fillStyle = '#cbd5e1';
+          ctx.font = '40px sans-serif';
+          ctx.fillText('Concentrazione CO2', 80, 220);
+
+          const barX = 80;
+          const barY = 250;
+          const barW = 1000;
+          const barH = 60;
+
+          // Creazione del gradiente da Verde (400ppm) a Rosso (>1500ppm)
+          const gradiente = ctx.createLinearGradient(barX, 0, barX + barW, 0);
+          gradiente.addColorStop(0, '#10b981');   // Verde
+          gradiente.addColorStop(0.3, '#facc15'); // Giallo (ca. 800 ppm)
+          gradiente.addColorStop(0.6, '#f97316'); // Arancione (ca. 1200 ppm)
+          gradiente.addColorStop(1, '#ef4444');   // Rosso (1500+ ppm)
+
+          // Disegno della barra colorata
+          ctx.fillStyle = gradiente;
+          ctx.beginPath();
+          ctx.roundRect(barX, barY, barW, barH, 30); // Barra con bordi arrotondati
+          ctx.fill();
+
+          // Calcolo posizione cursore (Mappatura 400 -> 2000 ppm sulla larghezza della barra)
+          let interpolazione = (co2 - 400) / (2000 - 400);
+          if (interpolazione > 1) interpolazione = 1;
+          if (interpolazione < 0) interpolazione = 0;
+          const indicatoreX = barX + (barW * interpolazione);
+
+          // Disegno l'indicatore (un triangolino bianco rovesciato sopra la barra)
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.moveTo(indicatoreX, barY - 10);
+          ctx.lineTo(indicatoreX - 20, barY - 35);
+          ctx.lineTo(indicatoreX + 20, barY - 35);
+          ctx.fill();
+
+          // Disegno la linea verticale dell'indicatore che taglia la barra
+          ctx.lineWidth = 6;
+          ctx.strokeStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.moveTo(indicatoreX, barY);
+          ctx.lineTo(indicatoreX, barY + barH);
+          ctx.stroke();
+
+          // Testo CO2 attuale (sulla destra della barra)
+          ctx.fillStyle = co2 > 1200 ? '#ef4444' : '#ffffff'; // Diventa rosso se alto
+          ctx.font = 'bold 90px monospace';
+          ctx.fillText(`${Math.round(co2)}`, 1150, 310);
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = '40px sans-serif';
+          ctx.fillText('ppm', 1400, 310);
+
+
+          // ==========================================
+          // SEZIONE 2: WIDGET STILE METEO (Termodinamica)
+          // ==========================================
+          const widgetY = 480;
+          
+          // Funzione d'appoggio per disegnare le "finestre" quadrate
+          function disegnaWidget(x, titolo, valore, unita, isSetpoint = false) {
+              ctx.fillStyle = '#1e293b'; // Sfondo card leggermente più chiaro
+              ctx.beginPath();
+              ctx.roundRect(x, widgetY, 420, 300, 20);
+              ctx.fill();
+
+              // Bordo azzurro solo per il setpoint per distinguerlo
+              if (isSetpoint) {
+                  ctx.lineWidth = 4;
+                  ctx.strokeStyle = '#0ea5e9';
+                  ctx.stroke();
+              }
+
+              ctx.fillStyle = '#94a3b8';
+              ctx.font = '35px sans-serif';
+              ctx.fillText(titolo, x + 40, widgetY + 70);
+
+              ctx.fillStyle = isSetpoint ? '#0ea5e9' : '#ffffff';
+              ctx.font = 'bold 100px sans-serif';
+              ctx.fillText(valore, x + 40, widgetY + 200);
+
+              ctx.fillStyle = '#94a3b8';
+              ctx.font = '40px sans-serif';
+              ctx.fillText(unita, x + 280, widgetY + 200);
+          }
+
+          // Disegno le 3 finestre affiancate
+          disegnaWidget(80, 'Temperatura', temp.toFixed(1), '°C');
+          disegnaWidget(550, 'Umidità Rel.', umidita.toFixed(1), '%');
+          disegnaWidget(1020, 'Setpoint', setpoint.toFixed(1), '°C', true);
+
+          // AGGIORNAMENTO TEXTURE 3D
+          const piano = document.querySelector('a-plane');
+          if(piano && piano.getObject3D('mesh')) {
+              piano.getObject3D('mesh').material.map.needsUpdate = true;
+          }
+
+          requestAnimationFrame(disegnaPannello);
+      }
+
+      requestAnimationFrame(disegnaPannello);
+    </script>
+  </body>
+</html>
