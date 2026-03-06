@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>EURIX - AR Multi-Device Dashboard</title>
+    <title>EURIX - AR Multi-Device Dashboard (JSON Fetch)</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
   </head>
@@ -32,41 +32,14 @@
     </a-scene>
 
     <script>
-      // ==========================================
-      // 1. CONFIGURAZIONE ENDPOINT (Da cambiare lunedì)
-      // ==========================================
-      const IP_DEL_SERVER = "192.168.1.100:8080"; // INSERIRE QUI L'IP DEL COLLEGA
-      const URL_BASE = `http://${IP_DEL_SERVER}/api/device/`;
-
       const ctxMacchina = document.getElementById('canvas-macchina').getContext('2d');
       const ctxIaq = document.getElementById('canvas-iaq').getContext('2d');
 
       // ==========================================
-      // 2. DATI MOCK (Piano B se il server è spento)
-      // ==========================================
-      const mockMacchina = [
-        { "name": "SP_mandata_secondario", "value": 18.6 },
-        { "name": "Temperatura_Mandata_Primario", "value": 26.1 },
-        { "name": "Temperatura_Ritorno_Primario", "value": 25.5 },
-        { "name": "Temperatura_Mandata_Caldaia_1", "value": 26.4 }
-      ];
-
-      const mockIaq = {
-        "message": {
-          "signals": [
-            { "name": "co2", "value": 687 },
-            { "name": "temper", "value": 25.12 },
-            { "name": "humid", "value": 33.46 },
-            { "name": "piemmedieci", "value": 1.4 }
-          ]
-        }
-      };
-
-      // ==========================================
-      // 3. FUNZIONI DI DISEGNO (I nostri cruscotti)
+      // FUNZIONI DI DISEGNO (I cruscotti grafici)
       // ==========================================
 
-      // Trova un valore specifico dentro l'array del JSON delle macchine
+      // Cerca un valore specifico dentro il JSON delle macchine
       function getValoreMacchina(dati, nomeVariabile) {
           const item = dati.find(d => d.name === nomeVariabile);
           return item ? item.value.toFixed(1) : "N/D";
@@ -80,15 +53,13 @@
           ctxMacchina.font = 'bold 70px sans-serif';
           ctxMacchina.fillText('CENTRALE TERMICA - DEVICE 0', 80, 120);
 
-          // Estraiamo i dati dal JSON usando la funzione di ricerca
+          // Estraiamo i dati che ci servono usando i nomi esatti del JSON
           const tMandata = getValoreMacchina(dati, "Temperatura_Mandata_Primario");
           const tRitorno = getValoreMacchina(dati, "Temperatura_Ritorno_Primario");
           const setpoint = getValoreMacchina(dati, "SP_mandata_secondario");
 
-          // Disegniamo i box dei valori
           function boxValore(ctx, x, y, titolo, valore, unita, colore) {
-              ctx.fillStyle = '#1e293b';
-              ctx.beginPath(); ctx.roundRect(x, y, 400, 300, 20); ctx.fill();
+              ctx.fillStyle = '#1e293b'; ctx.beginPath(); ctx.roundRect(x, y, 400, 300, 20); ctx.fill();
               ctx.fillStyle = '#94a3b8'; ctx.font = '35px sans-serif'; ctx.fillText(titolo, x+40, y+70);
               ctx.fillStyle = colore; ctx.font = 'bold 110px monospace'; ctx.fillText(valore, x+40, y+200);
               ctx.fillStyle = '#94a3b8'; ctx.font = '40px sans-serif'; ctx.fillText(unita, x+280, y+200);
@@ -98,15 +69,13 @@
           boxValore(ctxMacchina, 530, 250, "T. Ritorno", tRitorno, "°C", "#3b82f6");
           boxValore(ctxMacchina, 980, 250, "Setpoint (SP)", setpoint, "°C", "#10b981");
 
-          // Aggiorna Texture 3D
           const plane = document.getElementById('plane-macchina');
           if(plane && plane.getObject3D('mesh')) plane.getObject3D('mesh').material.map.needsUpdate = true;
       }
 
       function disegnaPannelloIAQ(datiJson) {
-          // Estraiamo l'array dei segnali dalla struttura complessa del file messagio-iaq.json
+          // Entriamo nella "scatola" giusta del JSON dell'aria
           const signals = datiJson.message.signals;
-          
           const getSignal = (nome) => {
               const s = signals.find(s => s.name === nome);
               return s ? s.value : 0;
@@ -124,7 +93,6 @@
           ctxIaq.font = 'bold 70px sans-serif';
           ctxIaq.fillText('MONITORAGGIO IAQ - DEVICE 1', 80, 120);
 
-          // BARRA CO2 (Come fatta in precedenza)
           ctxIaq.fillStyle = '#cbd5e1'; ctxIaq.font = '40px sans-serif'; ctxIaq.fillText('Anidride Carbonica (CO2)', 80, 250);
           const gradiente = ctxIaq.createLinearGradient(80, 0, 1080, 0);
           gradiente.addColorStop(0, '#10b981'); gradiente.addColorStop(0.5, '#facc15'); gradiente.addColorStop(1, '#ef4444');
@@ -137,7 +105,6 @@
           ctxIaq.font = 'bold 90px monospace'; ctxIaq.fillText(Math.round(co2), 1150, 340);
           ctxIaq.fillStyle = '#94a3b8'; ctxIaq.font = '40px sans-serif'; ctxIaq.fillText('ppm', 1400, 340);
 
-          // WIDGET METEO E PARTICOLATO
           function boxMeteo(x, y, titolo, valore, unita) {
               ctxIaq.fillStyle = '#1e293b'; ctxIaq.beginPath(); ctxIaq.roundRect(x, y, 420, 250, 20); ctxIaq.fill();
               ctxIaq.fillStyle = '#94a3b8'; ctxIaq.font = '35px sans-serif'; ctxIaq.fillText(titolo, x+40, y+60);
@@ -149,42 +116,37 @@
           boxMeteo(550, 480, "Umidità", hum.toFixed(1), "%");
           boxMeteo(1020, 480, "Polveri PM10", pm10.toFixed(1), "µg");
 
-          // Aggiorna Texture 3D
           const plane = document.getElementById('plane-iaq');
           if(plane && plane.getObject3D('mesh')) plane.getObject3D('mesh').material.map.needsUpdate = true;
       }
 
       // ==========================================
-      // 4. LA FUNZIONE FETCH (Il Motore di Rete)
+      // IL MOTORE DI RETE: LEGGE I DUE FILE JSON
       // ==========================================
       async function scaricaDatiDaEndpoint() {
           
-          // --- CHIAMATA DEVICE 0 (Macchina) ---
+          // Legge il file dati-endpoint.json per il Marker 0
           try {
-              const response0 = await fetch(URL_BASE + "0");
-              if (!response0.ok) throw new Error("Server non raggiungibile");
-              const dati0 = await response0.json();
-              disegnaPannelloMacchina(dati0);
+              const rispostaMacchina = await fetch('./dati-endpoint.json');
+              const datiMacchina = await rispostaMacchina.json();
+              disegnaPannelloMacchina(datiMacchina);
           } catch (errore) {
-              // Se il server del collega è spento, usa i dati finti che mi hai girato
-              disegnaPannelloMacchina(mockMacchina); 
+              console.error("Non riesco a leggere dati-endpoint.json", errore);
           }
 
-          // --- CHIAMATA DEVICE 1 (IAQ) ---
+          // Legge il file messagio-iaq.json per il Marker 1
           try {
-              const response1 = await fetch(URL_BASE + "1");
-              if (!response1.ok) throw new Error("Server non raggiungibile");
-              const dati1 = await response1.json();
-              disegnaPannelloIAQ(dati1);
+              const rispostaIaq = await fetch('./messagio-iaq.json');
+              const datiIaq = await rispostaIaq.json();
+              disegnaPannelloIAQ(datiIaq);
           } catch (errore) {
-              // Se il server del collega è spento, usa i dati finti che mi hai girato
-              disegnaPannelloIAQ(mockIaq);
+              console.error("Non riesco a leggere messagio-iaq.json", errore);
           }
       }
 
-      // Avvia la richiesta di rete ogni 3 secondi
+      // Avvia la lettura dei file ogni 3 secondi e aggiorna la grafica
       setInterval(scaricaDatiDaEndpoint, 3000);
-      scaricaDatiDaEndpoint(); // Prima esecuzione immediata all'avvio
+      scaricaDatiDaEndpoint();
 
     </script>
   </body>
