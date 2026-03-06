@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>EURIX - Spia Diagnostica (Canvas UI)</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  </head>
+  
+  <body style="margin: 0; overflow: hidden;">
+
+    <canvas id="alarm-canvas" width="1600" height="900" style="display:none;"></canvas>
+
+    <a-scene embedded 
+             arjs="sourceType: webcam; detectionMode: mono_and_matrix; matrixCodeType: 3x3; debugUIEnabled: false;"
+             renderer="antialias: true;">
+      
+      <a-marker type="barcode" value="4" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
+        <a-entity rotation="-75 0 0">
+          <a-plane position="0 2 0" width="6.4" height="3.6" material="src: #alarm-canvas; shader: flat;"></a-plane>
+        </a-entity>
+      </a-marker>
+
+      <a-entity camera look-controls="enabled: false" wasd-controls="enabled: false"></a-entity>
+    </a-scene>
+
+    <script>
+      const canvas = document.getElementById('alarm-canvas');
+      const ctx = canvas.getContext('2d');
+
+      // VARIABILI DI SIMULAZIONE
+      let temperatura = 65.0; 
+      let trendSalita = true; // Simula il riscaldamento/raffreddamento
+
+      // 1. MOTORE DATI: Aggiorna la temperatura ogni secondo
+      setInterval(() => {
+          if (trendSalita) {
+              temperatura += Math.random() * 3; // Sale velocemente
+              if (temperatura > 95) trendSalita = false; // Raggiunto il picco, inizia a scendere
+          } else {
+              temperatura -= Math.random() * 2; // Scende lentamente
+              if (temperatura < 65) trendSalita = true; // Ricomincia il ciclo
+          }
+      }, 1000);
+
+      // 2. MOTORE GRAFICO: Ridisegna la tela a 60 FPS per un lampeggio fluido
+      function disegnaPannello() {
+          // Pulisce la tela e disegna lo sfondo blu scuro
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(0, 0, 1600, 900);
+
+          // LOGICA DEGLI STATI
+          let stato, coloreBright, coloreDim, testoStato, testoDettaglio;
+
+          if (temperatura <= 75.0) {
+              // STATO VERDE: Normale
+              stato = 0;
+              coloreBright = '#10b981'; coloreDim = '#10b981'; // Non lampeggia
+              testoStato = "SISTEMA OK";
+              testoDettaglio = `Valore attuale: ${temperatura.toFixed(1)} °C (Normale)`;
+          } else if (temperatura <= 85.0) {
+              // STATO GIALLO: Anomalia Lieve
+              stato = 1;
+              coloreBright = '#facc15'; coloreDim = '#713f12'; // Giallo acceso / Marrone scuro
+              testoStato = "ANOMALIA LIEVE";
+              testoDettaglio = `Attuale: ${temperatura.toFixed(1)} °C | Limite di guardia: 75.0 °C`;
+          } else {
+              // STATO ROSSO: Errore Critico
+              stato = 2;
+              coloreBright = '#ef4444'; coloreDim = '#7f1d1d'; // Rosso acceso / Bordeux scuro
+              testoStato = "ERRORE CRITICO";
+              testoDettaglio = `Attuale: ${temperatura.toFixed(1)} °C | SOGLIA MAX: 85.0 °C`;
+          }
+
+          // LOGICA LAMPEGGIO (Blink)
+          // Usiamo l'orologio di sistema: se il millisecondo attuale è < 500, la spia è accesa, altrimenti è spenta.
+          const isBlinkAttivo = (Date.now() % 1000) < 500;
+          
+          // Se lo stato è anomalo (1 o 2) e il blink è nel ciclo di spegnimento, usa il colore scuro
+          const coloreSpia = (stato > 0 && !isBlinkAttivo) ? coloreDim : coloreBright;
+
+          // DISEGNO DELLA SPIA CIRCOLARE (LED)
+          ctx.beginPath();
+          ctx.arc(250, 450, 120, 0, 2 * Math.PI); // Coordinate (X, Y) e raggio
+          
+          // Effetto "Glow" (alone luminoso) quando la spia è accesa
+          ctx.shadowBlur = (stato > 0 && !isBlinkAttivo) ? 0 : 40;
+          ctx.shadowColor = coloreBright;
+          
+          ctx.fillStyle = coloreSpia;
+          ctx.fill();
+          
+          // Resetta l'ombra per non applicarla ai testi
+          ctx.shadowBlur = 0; 
+          
+          // Bordo del LED (sempre illuminato per definire la forma)
+          ctx.lineWidth = 15;
+          ctx.strokeStyle = coloreBright;
+          ctx.stroke();
+
+          // DISEGNO DEI TESTI
+          // Titolo in alto
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 70px sans-serif';
+          ctx.fillText('DIAGNOSTICA MACCHINA M-04', 100, 150);
+
+          // Testo dello Stato (allineato verticalmente al LED)
+          ctx.fillStyle = coloreBright;
+          ctx.font = 'bold 110px sans-serif';
+          // Usiamo maxWidth per evitare che testi lunghi sbordino dal canvas
+          ctx.fillText(testoStato, 450, 460, 1100); 
+
+          // Testo del Dettaglio Anomalia (appare sempre, in grigio chiaro)
+          ctx.fillStyle = '#cbd5e1';
+          ctx.font = '55px monospace'; // Il font monospace allinea bene i numeri
+          ctx.fillText(testoDettaglio, 450, 560);
+
+          // AGGIORNAMENTO DELLA TEXTURE 3D
+          const piano = document.querySelector('a-plane');
+          if(piano && piano.getObject3D('mesh')) {
+              piano.getObject3D('mesh').material.map.needsUpdate = true;
+          }
+
+          // Richiama questa stessa funzione al prossimo frame del monitor (circa 60 volte al secondo)
+          requestAnimationFrame(disegnaPannello);
+      }
+
+      // Avvia il loop grafico
+      requestAnimationFrame(disegnaPannello);
+    </script>
+  </body>
+</html>
