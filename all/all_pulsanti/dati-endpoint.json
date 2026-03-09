@@ -1,0 +1,42 @@
+[
+  {
+    "name": "SP_mandata_secondario",
+    "timestamp": "2025-03-22T08:16:00.000Z",
+    "value": 18.600000277161598
+  },
+  {
+    "name": "Temperatura_Ritorno_Secondario",
+    "timestamp": "2025-03-22T08:16:00.000Z",
+    "value": 23.500000350177288
+  },
+  {
+    "name": "Temperatura_Ritorno_Primario",
+    "timestamp": "2025-03-22T08:16:00.000Z",
+    "value": 25.50000037997961
+  },
+  {
+    "name": "Temperatura_Mandata_Secondario",
+    "timestamp": "2025-03-22T08:16:00.000Z",
+    "value": 25.200000375509262
+  },
+  {
+    "name": "Temperatura_Mandata_Primario",
+    "timestamp": "2025-03-22T08:16:00.000Z",
+    "value": 26.100000388920307
+  },
+  {
+    "name": "Temperatura_Mandata_Caldaia_3",
+    "timestamp": "2025-03-22T08:16:00.000Z",
+    "value": 26.50000039488077
+  },
+  {
+    "name": "Temperatura_Mandata_Caldaia_2",
+    "timestamp": "2025-03-22T08:16:00.000Z",
+    "value": 26.600000396370888
+  },
+  {
+    "name": "Temperatura_Mandata_Caldaia_1",
+    "timestamp": "2025-03-22T08:16:00.000Z",
+    "value": 26.400000393390656
+  }
+]

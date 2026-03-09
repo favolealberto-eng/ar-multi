@@ -1,0 +1,53 @@
+{
+  "type": "data",
+  "message": {
+    "device": "tmplCPVMLTHA-xxxxxx",
+    "date": "2026-03-05T16:50:20.000+0000",
+    "signals": [
+      {
+        "name": "co2",
+        "value": 687
+      },
+      {
+        "name": "piemmedieci",
+        "value": 1.4
+      },
+      {
+        "name": "piemmedue5",
+        "value": 1.4
+      },
+      {
+        "name": "piemmeuno",
+        "value": 1.4
+      },
+      {
+        "name": "tvoc",
+        "value": 71
+      },
+      {
+        "name": "noise",
+        "value": 43.73
+      },
+      {
+        "name": "light",
+        "value": 44
+      },
+      {
+        "name": "temper",
+        "value": 25.12
+      },
+      {
+        "name": "humid",
+        "value": 33.46
+      },
+      {
+        "name": "press",
+        "value": 994.64
+      },
+      {
+        "name": "airqindex",
+        "value": 73.92
+      }
+    ]
+  }
+}
