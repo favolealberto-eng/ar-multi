@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>EURIX - AR Ultimate Factory Dashboard (UI Edition)</title>
+    <title>EURIX - AR HD Dashboard con UI</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -14,27 +14,20 @@
         left: 50%;
         transform: translateX(-50%);
         z-index: 1000;
-        display: none; /* Nascosto finché non si inquadra un marker */
+        display: none; /* Appare solo quando trova il marker */
         background: rgba(15, 23, 42, 0.9);
         padding: 15px 25px;
         border-radius: 20px;
         border: 2px solid #3b82f6;
-        display: flex; /* Attivato via JS */
-        gap: 20px;
+        gap: 15px;
         align-items: center;
         box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        pointer-events: auto; /* Garantisce che i tasti siano cliccabili */
       }
       .btn-ar {
-        background: #1e293b;
-        color: #ffffff;
-        border: 2px solid #94a3b8;
-        padding: 12px 20px;
-        font-size: 20px;
-        border-radius: 12px;
-        cursor: pointer;
-        font-family: sans-serif;
-        font-weight: bold;
-        transition: all 0.2s;
+        background: #1e293b; color: #ffffff; border: 2px solid #94a3b8;
+        padding: 12px 20px; font-size: 20px; border-radius: 12px;
+        cursor: pointer; font-family: sans-serif; font-weight: bold;
       }
       .btn-ar:active { background: #3b82f6; border-color: #ffffff; }
       .btn-danger { background: #ef4444; border-color: #fca5a5; display: none; }
@@ -44,9 +37,9 @@
   
   <body style="margin: 0; overflow: hidden;">
 
-    <div id="ui-controls" style="display: none;">
-      <button id="btn-zoom-out" class="btn-ar">➖ Zoom</button>
-      <button id="btn-zoom-in" class="btn-ar">➕ Zoom</button>
+    <div id="ui-controls">
+      <button id="btn-zoom-out" class="btn-ar">➖</button>
+      <button id="btn-zoom-in" class="btn-ar">➕</button>
       <button id="btn-pin" class="btn-ar">📌 Fissa a Schermo</button>
       <button id="btn-unpin" class="btn-ar btn-danger">❌ Chiudi Pannello</button>
     </div>
@@ -59,37 +52,254 @@
     <canvas id="canvas-cold" width="1024" height="256" style="display:none;"></canvas>
 
     <a-scene embedded 
-             arjs="sourceType: webcam; detectionMode: mono_and_matrix; matrixCodeType: 3x3; debugUIEnabled: false;"
+             arjs="sourceType: webcam; detectionMode: mono_and_matrix; matrixCodeType: 3x3; debugUIEnabled: false; sourceWidth: 1280; sourceHeight: 720; displayWidth: 1280; displayHeight: 720;"
              renderer="antialias: true;">
       
-      <a-marker id="marker-0" type="barcode" value="0" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
+      <a-marker id="marker-0" type="barcode" value="0" emitevents="true" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
         <a-entity id="content-0" rotation="-75 0 0">
           <a-plane id="plane-macchina" position="0 1.5 0" width="4.8" height="2.7" material="src: #canvas-macchina; shader: flat;"></a-plane>
         </a-entity>
       </a-marker>
 
-      <a-marker id="marker-1" type="barcode" value="1" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
+      <a-marker id="marker-1" type="barcode" value="1" emitevents="true" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
         <a-entity id="content-1" rotation="-75 0 0">
           <a-plane id="plane-iaq" position="0 1.5 0" width="4.8" height="2.7" material="src: #canvas-iaq; shader: flat;"></a-plane>
         </a-entity>
       </a-marker>
 
-      <a-marker id="marker-2" type="barcode" value="2" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
+      <a-marker id="marker-2" type="barcode" value="2" emitevents="true" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
         <a-entity id="content-2" rotation="-75 0 0">
           <a-plane id="plane-chart" position="0 1.5 0" width="4.8" height="2.7" material="src: #canvas-chart; shader: flat;"></a-plane>
         </a-entity>
       </a-marker>
 
-      <a-marker id="marker-3" type="barcode" value="3" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
+      <a-marker id="marker-3" type="barcode" value="3" emitevents="true" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
         <a-entity id="content-3" rotation="-75 0 0">
           <a-plane id="plane-alarm" position="0 1.5 0" width="4.8" height="2.7" material="src: #canvas-alarm; shader: flat;"></a-plane>
         </a-entity>
       </a-marker>
 
-      <a-marker id="marker-4" type="barcode" value="4" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
+      <a-marker id="marker-4" type="barcode" value="4" emitevents="true" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
         <a-entity id="content-4" rotation="-75 0 0">
           <a-entity position="0 2 0">
             <a-plane id="plane-hot" position="0 1.2 0" width="3.8" height="0.95" material="src: #canvas-hot; transparent: true; shader: flat;"></a-plane>
             <a-cylinder radius="0.3" height="4.5" rotation="0 0 90" color="#111" opacity="0.4" transparent="true"></a-cylinder>
             <a-entity animation="property: position; from: -1.5 0 0; to: 1.5 0 0; loop: true; dur: 2000; easing: linear">
-              <a-cone class="arrow-hot" radius-bottom="0.2" height="0.5"
+              <a-cone class="arrow-hot" radius-bottom="0.2" height="0.5" rotation="0 0 -90" position="-1.5 0 0"></a-cone>
+              <a-cone class="arrow-hot" radius-bottom="0.2" height="0.5" rotation="0 0 -90" position="0 0 0"></a-cone>
+              <a-cone class="arrow-hot" radius-bottom="0.2" height="0.5" rotation="0 0 -90" position="1.5 0 0"></a-cone>
+            </a-entity>
+          </a-entity>
+          <a-entity position="0 -2 0">
+            <a-plane id="plane-cold" position="0 -1.2 0" width="3.8" height="0.95" material="src: #canvas-cold; transparent: true; shader: flat;"></a-plane>
+            <a-cylinder radius="0.3" height="4.5" rotation="0 0 90" color="#111" opacity="0.4" transparent="true"></a-cylinder>
+            <a-entity animation="property: position; from: 1.5 0 0; to: -1.5 0 0; loop: true; dur: 2500; easing: linear">
+              <a-cone class="arrow-cold" radius-bottom="0.2" height="0.5" rotation="0 0 90" position="1.5 0 0"></a-cone>
+              <a-cone class="arrow-cold" radius-bottom="0.2" height="0.5" rotation="0 0 90" position="0 0 0"></a-cone>
+              <a-cone class="arrow-cold" radius-bottom="0.2" height="0.5" rotation="0 0 90" position="-1.5 0 0"></a-cone>
+            </a-entity>
+          </a-entity>
+        </a-entity>
+      </a-marker>
+
+      <a-entity id="main-camera" camera look-controls="enabled: false" wasd-controls="enabled: false"></a-entity>
+    </a-scene>
+
+    <script>
+      const forceUpdate = (id) => {
+          const plane = document.getElementById(id);
+          if(plane && plane.getObject3D('mesh')) plane.getObject3D('mesh').material.map.needsUpdate = true;
+      };
+
+      // ==========================================
+      // LOGICA DEI PULSANTI, ZOOM E FISSAGGIO A SCHERMO
+      // ==========================================
+      let activeMarker = null;
+      let isPinned = false;
+      let zoomLevels = {0: 1.0, 1: 1.0, 2: 1.0, 3: 1.0, 4: 1.0};
+
+      const uiControls = document.getElementById('ui-controls');
+      const btnZoomIn = document.getElementById('btn-zoom-in');
+      const btnZoomOut = document.getElementById('btn-zoom-out');
+      const btnPin = document.getElementById('btn-pin');
+      const btnUnpin = document.getElementById('btn-unpin');
+      const mainCamera = document.getElementById('main-camera');
+
+      function applyZoom(id) {
+          const content = document.getElementById(`content-${id}`);
+          if(content && !isPinned) {
+              const z = zoomLevels[id];
+              content.setAttribute('scale', `${z} ${z} ${z}`);
+          }
+      }
+
+      // ASCOLTA LA COMPARSA E LA SCOMPARSA DEI MARKER
+      for(let i=0; i<=4; i++) {
+          const marker = document.getElementById(`marker-${i}`);
+          if(marker) {
+              marker.addEventListener('markerFound', () => {
+                  if (!isPinned) {
+                      activeMarker = i;
+                      uiControls.style.display = 'flex'; 
+                      applyZoom(i); 
+                  }
+              });
+              
+              marker.addEventListener('markerLost', () => {
+                  if (!isPinned && activeMarker === i) {
+                      activeMarker = null;
+                      uiControls.style.display = 'none'; 
+                  }
+              });
+          }
+      }
+
+      // TASTI ZOOM
+      btnZoomIn.addEventListener('click', () => {
+          if (activeMarker !== null && !isPinned) {
+              zoomLevels[activeMarker] += 0.1; 
+              applyZoom(activeMarker);
+          }
+      });
+      btnZoomOut.addEventListener('click', () => {
+          if (activeMarker !== null && !isPinned) {
+              zoomLevels[activeMarker] = Math.max(0.3, zoomLevels[activeMarker] - 0.1); 
+              applyZoom(activeMarker);
+          }
+      });
+
+      // TASTO FISSA (Reparenting sulla Telecamera)
+      btnPin.addEventListener('click', () => {
+          if (activeMarker !== null && !isPinned) {
+              isPinned = true;
+              const content = document.getElementById(`content-${activeMarker}`);
+              
+              // Sposta l'ologramma dentro la telecamera
+              mainCamera.appendChild(content);
+              
+              // Centra il pannello davanti allo schermo (Z = -5 metri)
+              content.setAttribute('position', '0 0 -5'); 
+              content.setAttribute('rotation', '0 0 0');  
+              // Reset della scala a 1.0 quando è a schermo intero
+              content.setAttribute('scale', '1 1 1');
+              
+              btnPin.style.display = 'none';
+              btnZoomIn.style.display = 'none';
+              btnZoomOut.style.display = 'none';
+              btnUnpin.style.display = 'block';
+          }
+      });
+
+      // TASTO CHIUDI (Rilascia al marker originale)
+      btnUnpin.addEventListener('click', () => {
+          if (isPinned && activeMarker !== null) {
+              const content = document.getElementById(`content-${activeMarker}`);
+              const marker = document.getElementById(`marker-${activeMarker}`);
+              
+              // Rimette l'ologramma sul marker
+              marker.appendChild(content);
+              
+              // Ripristina l'inclinazione originaria
+              content.setAttribute('position', '0 0 0');
+              content.setAttribute('rotation', '-75 0 0'); 
+              applyZoom(activeMarker);
+              
+              isPinned = false;
+              btnPin.style.display = 'block';
+              btnZoomIn.style.display = 'block';
+              btnZoomOut.style.display = 'block';
+              btnUnpin.style.display = 'none';
+              
+              // Se il marker non è nell'inquadratura, nascondi i tasti
+              if (!marker.object3D.visible) {
+                  activeMarker = null;
+                  uiControls.style.display = 'none';
+              }
+          }
+      });
+
+      // ==========================================
+      // LOGICA GRAFICA 2D E DATI
+      // ==========================================
+      const ctxMacchina = document.getElementById('canvas-macchina').getContext('2d');
+      const ctxIaq = document.getElementById('canvas-iaq').getContext('2d');
+
+      function disegnaPannelloMacchina(dati) {
+          const getVal = (nome) => { const item = dati.find(d => d.name === nome); return item ? item.value.toFixed(1) : "N/D"; };
+          ctxMacchina.fillStyle = '#0f172a'; ctxMacchina.fillRect(0, 0, 1600, 900);
+          ctxMacchina.fillStyle = '#ffffff'; ctxMacchina.font = 'bold 70px sans-serif'; ctxMacchina.fillText('CENTRALE TERMICA - JSON', 80, 120);
+
+          function boxValore(ctx, x, y, tit, val, unita, col) {
+              ctx.fillStyle = '#1e293b'; ctx.beginPath(); ctx.roundRect(x, y, 400, 300, 20); ctx.fill();
+              ctx.fillStyle = '#94a3b8'; ctx.font = '35px sans-serif'; ctx.fillText(tit, x+40, y+70);
+              ctx.fillStyle = col; ctx.font = 'bold 110px monospace'; ctx.fillText(val, x+40, y+200);
+              ctx.fillStyle = '#94a3b8'; ctx.font = '40px sans-serif'; ctx.fillText(unita, x+280, y+200);
+          }
+          boxValore(ctxMacchina, 80, 250, "T. Mandata", getVal("Temperatura_Mandata_Primario"), "°C", "#ef4444");
+          boxValore(ctxMacchina, 530, 250, "T. Ritorno", getVal("Temperatura_Ritorno_Primario"), "°C", "#3b82f6");
+          boxValore(ctxMacchina, 980, 250, "Setpoint", getVal("SP_mandata_secondario"), "°C", "#10b981");
+          forceUpdate('plane-macchina');
+      }
+
+      function disegnaPannelloIAQ(datiJson) {
+          const signals = datiJson.message.signals;
+          const getSig = (nome) => { const s = signals.find(s => s.name === nome); return s ? s.value : 0; };
+          const co2 = getSig("co2");
+          
+          ctxIaq.fillStyle = '#0f172a'; ctxIaq.fillRect(0, 0, 1600, 900);
+          ctxIaq.fillStyle = '#ffffff'; ctxIaq.font = 'bold 70px sans-serif'; ctxIaq.fillText('QUALITÀ ARIA - JSON', 80, 120);
+
+          ctxIaq.fillStyle = '#cbd5e1'; ctxIaq.font = '40px sans-serif'; ctxIaq.fillText('Anidride Carbonica (CO2)', 80, 250);
+          const grad = ctxIaq.createLinearGradient(80, 0, 1080, 0);
+          grad.addColorStop(0, '#10b981'); grad.addColorStop(0.5, '#facc15'); grad.addColorStop(1, '#ef4444');
+          ctxIaq.fillStyle = grad; ctxIaq.beginPath(); ctxIaq.roundRect(80, 280, 1000, 60, 30); ctxIaq.fill();
+          
+          let perc = (co2 - 400) / (2000 - 400); if(perc>1) perc=1; if(perc<0) perc=0;
+          ctxIaq.fillStyle = '#ffffff'; ctxIaq.beginPath(); ctxIaq.arc(80 + (1000 * perc), 310, 20, 0, Math.PI*2); ctxIaq.fill();
+          
+          ctxIaq.font = 'bold 90px monospace'; ctxIaq.fillText(Math.round(co2), 1150, 340);
+          ctxIaq.fillStyle = '#94a3b8'; ctxIaq.font = '40px sans-serif'; ctxIaq.fillText('ppm', 1400, 340);
+
+          function boxM(x, y, tit, val, unita) {
+              ctxIaq.fillStyle = '#1e293b'; ctxIaq.beginPath(); ctxIaq.roundRect(x, y, 420, 250, 20); ctxIaq.fill();
+              ctxIaq.fillStyle = '#94a3b8'; ctxIaq.font = '35px sans-serif'; ctxIaq.fillText(tit, x+40, y+60);
+              ctxIaq.fillStyle = '#ffffff'; ctxIaq.font = 'bold 90px monospace'; ctxIaq.fillText(val, x+40, y+170);
+              ctxIaq.fillStyle = '#94a3b8'; ctxIaq.font = '40px sans-serif'; ctxIaq.fillText(unita, x+280, y+170);
+          }
+          boxM(80, 480, "Temperatura", getSig("temper").toFixed(1), "°C");
+          boxM(550, 480, "Umidità", getSig("humid").toFixed(1), "%");
+          boxM(1020, 480, "Polveri PM10", getSig("piemmedieci").toFixed(1), "µg");
+          forceUpdate('plane-iaq');
+      }
+
+      async function scaricaJson() {
+          const mockMacchina = [
+              { "name": "SP_mandata_secondario", "value": 18.6 }, { "name": "Temperatura_Mandata_Primario", "value": 26.1 },
+              { "name": "Temperatura_Ritorno_Primario", "value": 25.5 }, { "name": "Temperatura_Mandata_Caldaia_1", "value": 26.4 }
+          ];
+          const mockIaq = { "message": { "signals": [{ "name": "co2", "value": 687 }, { "name": "temper", "value": 25.12 }, { "name": "humid", "value": 33.46 }, { "name": "piemmedieci", "value": 1.4 }]}};
+          try { const r = await fetch('./dati-endpoint.json'); if(!r.ok) throw new Error(); disegnaPannelloMacchina(await r.json()); } catch (e) { disegnaPannelloMacchina(mockMacchina); }
+          try { const r = await fetch('./messagio-iaq.json'); if(!r.ok) throw new Error(); disegnaPannelloIAQ(await r.json()); } catch (e) { disegnaPannelloIAQ(mockIaq); }
+      }
+      setInterval(scaricaJson, 3000); scaricaJson();
+
+      const ctxChart = document.getElementById('canvas-chart').getContext('2d');
+      Chart.defaults.color = '#cbd5e1'; Chart.defaults.font.family = 'sans-serif';
+      const chartInstance = new Chart(ctxChart, {
+          type: 'line', data: { labels: ['-10s', '-8s', '-6s', '-4s', '-2s', 'Ora'], datasets: [{ label: 'Potenza kW', data: [15.2, 15.5, 16.1, 15.8, 16.5, 16.2], borderColor: '#0ea5e9', backgroundColor: 'rgba(14, 165, 233, 0.2)', borderWidth: 6, tension: 0.4, fill: true, pointRadius: 8, pointBackgroundColor: '#ffffff' }] },
+          options: { responsive: false, animation: { duration: 500 }, layout: { padding: 40 }, plugins: { customCanvasBackgroundColor: true, legend: { labels: { font: { size: 24 } } }, title: { display: true, text: 'POTENZA MACCHINA', color: '#ffffff', font: { size: 64, weight: 'bold' } }, subtitle: { display: true, text: 'Live Data Simulato', color: '#94a3b8', font: { size: 32 }, padding: { bottom: 40 } } }, scales: { y: { min: 10, max: 25, ticks: { font: { size: 24 } } }, x: { ticks: { font: { size: 24 } } } } },
+          plugins: [{ id: 'customCanvasBackgroundColor', beforeDraw: (ch) => { const c = ch.canvas.getContext('2d'); c.save(); c.globalCompositeOperation = 'destination-over'; c.fillStyle = '#0f172a'; c.fillRect(0, 0, ch.width, ch.height); c.restore(); } }]
+      });
+
+      setInterval(() => {
+          chartInstance.data.datasets[0].data.shift(); chartInstance.data.datasets[0].data.push((Math.random() * 4 + 14).toFixed(1));
+          chartInstance.options.plugins.subtitle.text = `Aggiornato: ${new Date().toLocaleTimeString()}`; chartInstance.update(); forceUpdate('plane-chart');
+      }, 2000);
+
+      const ctxAlarm = document.getElementById('canvas-alarm').getContext('2d');
+      let tAlarm = 65.0, upAlarm = true;
+      setInterval(() => { if (upAlarm) { tAlarm += Math.random() * 3; if (tAlarm > 95) upAlarm = false; } else { tAlarm -= Math.random() * 2; if (tAlarm < 65) upAlarm = true; } }, 1000);
+
+      function loopAlarm() {
+          ctxAlarm.fillStyle = '#0f172a'; ctxAlarm.fillRect(0, 0, 1600, 900);
+          let st, cB, cD, tSt, tDet;
