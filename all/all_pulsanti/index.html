@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>EURIX - AR HD Dashboard con UI</title>
+    <title>EURIX - AR Ultimate Factory Dashboard (UI Edition)</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -14,20 +14,20 @@
         left: 50%;
         transform: translateX(-50%);
         z-index: 1000;
-        display: none; /* Appare solo quando trova il marker */
+        display: none; /* Nascosto finché non si inquadra un marker */
         background: rgba(15, 23, 42, 0.9);
         padding: 15px 25px;
         border-radius: 20px;
         border: 2px solid #3b82f6;
-        gap: 15px;
+        gap: 20px;
         align-items: center;
         box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-        pointer-events: auto; /* Garantisce che i tasti siano cliccabili */
       }
       .btn-ar {
         background: #1e293b; color: #ffffff; border: 2px solid #94a3b8;
         padding: 12px 20px; font-size: 20px; border-radius: 12px;
         cursor: pointer; font-family: sans-serif; font-weight: bold;
+        transition: all 0.2s;
       }
       .btn-ar:active { background: #3b82f6; border-color: #ffffff; }
       .btn-danger { background: #ef4444; border-color: #fca5a5; display: none; }
@@ -38,8 +38,8 @@
   <body style="margin: 0; overflow: hidden;">
 
     <div id="ui-controls">
-      <button id="btn-zoom-out" class="btn-ar">➖</button>
-      <button id="btn-zoom-in" class="btn-ar">➕</button>
+      <button id="btn-zoom-out" class="btn-ar">➖ Zoom</button>
+      <button id="btn-zoom-in" class="btn-ar">➕ Zoom</button>
       <button id="btn-pin" class="btn-ar">📌 Fissa a Schermo</button>
       <button id="btn-unpin" class="btn-ar btn-danger">❌ Chiudi Pannello</button>
     </div>
@@ -112,7 +112,7 @@
       };
 
       // ==========================================
-      // LOGICA DEI PULSANTI, ZOOM E FISSAGGIO A SCHERMO
+      // UI CONTROLS: ZOOM E FISSAGGIO A SCHERMO
       // ==========================================
       let activeMarker = null;
       let isPinned = false;
@@ -133,7 +133,7 @@
           }
       }
 
-      // ASCOLTA LA COMPARSA E LA SCOMPARSA DEI MARKER
+      // ASCOLTA LA COMPARSA/SCOMPARSA DEI MARKER
       for(let i=0; i<=4; i++) {
           const marker = document.getElementById(`marker-${i}`);
           if(marker) {
@@ -154,7 +154,7 @@
           }
       }
 
-      // TASTI ZOOM
+      // COMANDI ZOOM
       btnZoomIn.addEventListener('click', () => {
           if (activeMarker !== null && !isPinned) {
               zoomLevels[activeMarker] += 0.1; 
@@ -168,19 +168,15 @@
           }
       });
 
-      // TASTO FISSA (Reparenting sulla Telecamera)
+      // COMANDO FISSA A SCHERMO (Reparenting)
       btnPin.addEventListener('click', () => {
           if (activeMarker !== null && !isPinned) {
               isPinned = true;
               const content = document.getElementById(`content-${activeMarker}`);
               
-              // Sposta l'ologramma dentro la telecamera
               mainCamera.appendChild(content);
-              
-              // Centra il pannello davanti allo schermo (Z = -5 metri)
               content.setAttribute('position', '0 0 -5'); 
               content.setAttribute('rotation', '0 0 0');  
-              // Reset della scala a 1.0 quando è a schermo intero
               content.setAttribute('scale', '1 1 1');
               
               btnPin.style.display = 'none';
@@ -190,16 +186,13 @@
           }
       });
 
-      // TASTO CHIUDI (Rilascia al marker originale)
+      // COMANDO RILASCIA
       btnUnpin.addEventListener('click', () => {
           if (isPinned && activeMarker !== null) {
               const content = document.getElementById(`content-${activeMarker}`);
               const marker = document.getElementById(`marker-${activeMarker}`);
               
-              // Rimette l'ologramma sul marker
               marker.appendChild(content);
-              
-              // Ripristina l'inclinazione originaria
               content.setAttribute('position', '0 0 0');
               content.setAttribute('rotation', '-75 0 0'); 
               applyZoom(activeMarker);
@@ -210,7 +203,6 @@
               btnZoomOut.style.display = 'block';
               btnUnpin.style.display = 'none';
               
-              // Se il marker non è nell'inquadratura, nascondi i tasti
               if (!marker.object3D.visible) {
                   activeMarker = null;
                   uiControls.style.display = 'none';
@@ -219,7 +211,7 @@
       });
 
       // ==========================================
-      // LOGICA GRAFICA 2D E DATI
+      // SEZIONE 1: MARKER 0 e 1 (JSON FETCH)
       // ==========================================
       const ctxMacchina = document.getElementById('canvas-macchina').getContext('2d');
       const ctxIaq = document.getElementById('canvas-iaq').getContext('2d');
@@ -273,20 +265,22 @@
       }
 
       async function scaricaJson() {
-          const mockMacchina = [
-              { "name": "SP_mandata_secondario", "value": 18.6 }, { "name": "Temperatura_Mandata_Primario", "value": 26.1 },
-              { "name": "Temperatura_Ritorno_Primario", "value": 25.5 }, { "name": "Temperatura_Mandata_Caldaia_1", "value": 26.4 }
-          ];
-          const mockIaq = { "message": { "signals": [{ "name": "co2", "value": 687 }, { "name": "temper", "value": 25.12 }, { "name": "humid", "value": 33.46 }, { "name": "piemmedieci", "value": 1.4 }]}};
-          try { const r = await fetch('./dati-endpoint.json'); if(!r.ok) throw new Error(); disegnaPannelloMacchina(await r.json()); } catch (e) { disegnaPannelloMacchina(mockMacchina); }
-          try { const r = await fetch('./messagio-iaq.json'); if(!r.ok) throw new Error(); disegnaPannelloIAQ(await r.json()); } catch (e) { disegnaPannelloIAQ(mockIaq); }
+          try { const r = await fetch('./dati-endpoint.json'); disegnaPannelloMacchina(await r.json()); } catch (e) { console.warn("Manca dati-endpoint.json"); }
+          try { const r = await fetch('./messagio-iaq.json'); disegnaPannelloIAQ(await r.json()); } catch (e) { console.warn("Manca messagio-iaq.json"); }
       }
       setInterval(scaricaJson, 3000); scaricaJson();
 
+      // ==========================================
+      // SEZIONE 2: MARKER 2 (CHART DINAMICO)
+      // ==========================================
       const ctxChart = document.getElementById('canvas-chart').getContext('2d');
       Chart.defaults.color = '#cbd5e1'; Chart.defaults.font.family = 'sans-serif';
       const chartInstance = new Chart(ctxChart, {
-          type: 'line', data: { labels: ['-10s', '-8s', '-6s', '-4s', '-2s', 'Ora'], datasets: [{ label: 'Potenza kW', data: [15.2, 15.5, 16.1, 15.8, 16.5, 16.2], borderColor: '#0ea5e9', backgroundColor: 'rgba(14, 165, 233, 0.2)', borderWidth: 6, tension: 0.4, fill: true, pointRadius: 8, pointBackgroundColor: '#ffffff' }] },
+          type: 'line',
+          data: {
+              labels: ['-10s', '-8s', '-6s', '-4s', '-2s', 'Ora'],
+              datasets: [{ label: 'Potenza kW', data: [15.2, 15.5, 16.1, 15.8, 16.5, 16.2], borderColor: '#0ea5e9', backgroundColor: 'rgba(14, 165, 233, 0.2)', borderWidth: 6, tension: 0.4, fill: true, pointRadius: 8, pointBackgroundColor: '#ffffff' }]
+          },
           options: { responsive: false, animation: { duration: 500 }, layout: { padding: 40 }, plugins: { customCanvasBackgroundColor: true, legend: { labels: { font: { size: 24 } } }, title: { display: true, text: 'POTENZA MACCHINA', color: '#ffffff', font: { size: 64, weight: 'bold' } }, subtitle: { display: true, text: 'Live Data Simulato', color: '#94a3b8', font: { size: 32 }, padding: { bottom: 40 } } }, scales: { y: { min: 10, max: 25, ticks: { font: { size: 24 } } }, x: { ticks: { font: { size: 24 } } } } },
           plugins: [{ id: 'customCanvasBackgroundColor', beforeDraw: (ch) => { const c = ch.canvas.getContext('2d'); c.save(); c.globalCompositeOperation = 'destination-over'; c.fillStyle = '#0f172a'; c.fillRect(0, 0, ch.width, ch.height); c.restore(); } }]
       });
@@ -296,6 +290,9 @@
           chartInstance.options.plugins.subtitle.text = `Aggiornato: ${new Date().toLocaleTimeString()}`; chartInstance.update(); forceUpdate('plane-chart');
       }, 2000);
 
+      // ==========================================
+      // SEZIONE 3: MARKER 3 (SPIA ALLARME)
+      // ==========================================
       const ctxAlarm = document.getElementById('canvas-alarm').getContext('2d');
       let tAlarm = 65.0, upAlarm = true;
       setInterval(() => { if (upAlarm) { tAlarm += Math.random() * 3; if (tAlarm > 95) upAlarm = false; } else { tAlarm -= Math.random() * 2; if (tAlarm < 65) upAlarm = true; } }, 1000);
@@ -303,3 +300,40 @@
       function loopAlarm() {
           ctxAlarm.fillStyle = '#0f172a'; ctxAlarm.fillRect(0, 0, 1600, 900);
           let st, cB, cD, tSt, tDet;
+          if (tAlarm <= 75) { st=0; cB='#10b981'; cD='#10b981'; tSt="SISTEMA OK"; tDet=`Valore: ${tAlarm.toFixed(1)} °C`; }
+          else if (tAlarm <= 85) { st=1; cB='#facc15'; cD='#713f12'; tSt="ANOMALIA"; tDet=`Attuale: ${tAlarm.toFixed(1)} °C | Max: 75.0 °C`; }
+          else { st=2; cB='#ef4444'; cD='#7f1d1d'; tSt="CRITICO"; tDet=`Attuale: ${tAlarm.toFixed(1)} °C | OVERHEAT`; }
+
+          const blink = (Date.now() % 1000) < 500; const colSpia = (st > 0 && !blink) ? cD : cB;
+          ctxAlarm.beginPath(); ctxAlarm.arc(250, 450, 120, 0, 2 * Math.PI); ctxAlarm.shadowBlur = (st > 0 && !blink) ? 0 : 40; ctxAlarm.shadowColor = cB;
+          ctxAlarm.fillStyle = colSpia; ctxAlarm.fill(); ctxAlarm.shadowBlur = 0; ctxAlarm.lineWidth = 15; ctxAlarm.strokeStyle = cB; ctxAlarm.stroke();
+          ctxAlarm.fillStyle = '#ffffff'; ctxAlarm.font = 'bold 70px sans-serif'; ctxAlarm.fillText('DIAGNOSTICA', 100, 150);
+          ctxAlarm.fillStyle = cB; ctxAlarm.font = 'bold 110px sans-serif'; ctxAlarm.fillText(tSt, 450, 460);
+          ctxAlarm.fillStyle = '#cbd5e1'; ctxAlarm.font = '55px monospace'; ctxAlarm.fillText(tDet, 450, 560);
+          forceUpdate('plane-alarm'); requestAnimationFrame(loopAlarm);
+      }
+      requestAnimationFrame(loopAlarm);
+
+      // ==========================================
+      // SEZIONE 4: MARKER 4 (FRECCE 3D)
+      // ==========================================
+      const ctxHot = document.getElementById('canvas-hot').getContext('2d'), ctxCold = document.getElementById('canvas-cold').getContext('2d');
+      const arrHot = document.querySelectorAll('.arrow-hot'), arrCold = document.querySelectorAll('.arrow-cold');
+      let tHot = 95.0, tCold = 7.0;
+      function colora(c1, c2, f) { return `rgb(${Math.round(c1[0]+f*(c2[0]-c1[0]))}, ${Math.round(c1[1]+f*(c2[1]-c1[1]))}, ${Math.round(c1[2]+f*(c2[2]-c1[2]))})`; }
+
+      setInterval(() => {
+          tHot += (Math.random() * 2 - 1); tCold += (Math.random() * 0.6 - 0.3);
+          ctxHot.clearRect(0, 0, 1024, 256); ctxHot.fillStyle = '#0f172a'; ctxHot.beginPath(); ctxHot.roundRect(10, 10, 1004, 236, 40); ctxHot.fill();
+          ctxHot.textAlign = 'center'; ctxHot.fillStyle = '#ffb74d'; ctxHot.font = 'bold 50px sans-serif'; ctxHot.fillText('MANDATA VAPORE', 512, 90);
+          ctxHot.fillStyle = '#ffffff'; ctxHot.font = 'bold 110px monospace'; ctxHot.fillText(`${tHot.toFixed(1)} °C`, 512, 210);
+          ctxCold.clearRect(0, 0, 1024, 256); ctxCold.fillStyle = '#0f172a'; ctxCold.beginPath(); ctxCold.roundRect(10, 10, 1004, 236, 40); ctxCold.fill();
+          ctxCold.textAlign = 'center'; ctxCold.fillStyle = '#4fc3f7'; ctxCold.font = 'bold 50px sans-serif'; ctxCold.fillText('RITORNO ACQUA', 512, 90);
+          ctxCold.fillStyle = '#ffffff'; ctxCold.font = 'bold 110px monospace'; ctxCold.fillText(`${tCold.toFixed(1)} °C`, 512, 210);
+          forceUpdate('plane-hot'); forceUpdate('plane-cold');
+          let fH = Math.max(0, Math.min(1, (tHot - 85) / 20)); let cH = colora([255, 165, 0], [255, 0, 0], fH); arrHot.forEach(a => a.setAttribute('color', cH));
+          let fC = Math.max(0, Math.min(1, (tCold - 2) / 10)); let cC = colora([0, 0, 255], [0, 255, 255], fC); arrCold.forEach(a => a.setAttribute('color', cC));
+      }, 500);
+    </script>
+  </body>
+</html>
