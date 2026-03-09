@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>EURIX - AR Multi-Device Dashboard (JSON Fetch)</title>
+    <title>EURIX - AR Dashboard Dinamica (Endpoint URL)</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
   </head>
@@ -32,119 +32,129 @@
     </a-scene>
 
     <script>
+      // ==========================================
+      // 1. INSERISCI QUI GLI URL DEGLI ENDPOINT
+      // ==========================================
+      const ENDPOINT_0 = "http://192.168.37.201:1880/api/device/0"; // Esempio: "http://192.168.1.100:8080/api/device/0"
+      const ENDPOINT_1 = "http://192.168.37.201:1880/api/device/1";      // Esempio: "http://192.168.1.100:8080/api/device/1"
+
       const ctxMacchina = document.getElementById('canvas-macchina').getContext('2d');
       const ctxIaq = document.getElementById('canvas-iaq').getContext('2d');
 
       // ==========================================
-      // FUNZIONI DI DISEGNO (I cruscotti grafici)
+      // 2. FUNZIONE GENERATRICE DELLA GRIGLIA DINAMICA
       // ==========================================
+      // Questa funzione prende un array di dati e lo trasforma automaticamente in box a schermo
+      function disegnaGrigliaDinamica(ctx, datiArray, titoloPannello, planeId) {
+          
+          // Sfondo scuro per il pannello
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(0, 0, 1600, 900);
 
-      // Cerca un valore specifico dentro il JSON delle macchine
-      function getValoreMacchina(dati, nomeVariabile) {
-          const item = dati.find(d => d.name === nomeVariabile);
-          return item ? item.value.toFixed(1) : "N/D";
-      }
+          // Disegna il titolo in alto
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 70px sans-serif';
+          ctx.fillText(titoloPannello, 80, 120);
 
-      function disegnaPannelloMacchina(dati) {
-          ctxMacchina.fillStyle = '#0f172a';
-          ctxMacchina.fillRect(0, 0, 1600, 900);
+          // Impostazioni geometriche della griglia (4 Colonne x 3 Righe max)
+          const startX = 80;
+          const startY = 180;
+          const boxW = 330;  // Larghezza del singolo quadratino
+          const boxH = 200;  // Altezza del singolo quadratino
+          const gapX = 40;   // Spazio orizzontale tra i box
+          const gapY = 40;   // Spazio verticale tra i box
 
-          ctxMacchina.fillStyle = '#ffffff';
-          ctxMacchina.font = 'bold 70px sans-serif';
-          ctxMacchina.fillText('CENTRALE TERMICA - DEVICE 0', 80, 120);
+          // Limitiamo a un massimo di 12 elementi per non sbordare dalla tela 1600x900
+          const maxElements = Math.min(datiArray.length, 12);
 
-          // Estraiamo i dati che ci servono usando i nomi esatti del JSON
-          const tMandata = getValoreMacchina(dati, "Temperatura_Mandata_Primario");
-          const tRitorno = getValoreMacchina(dati, "Temperatura_Ritorno_Primario");
-          const setpoint = getValoreMacchina(dati, "SP_mandata_secondario");
+          for (let i = 0; i < maxElements; i++) {
+              const item = datiArray[i];
+              
+              // Estrapola il nome e puliscilo (sostituisce gli underscore con spazi per estetica)
+              let nomeVariabile = item.name || "N/D";
+              nomeVariabile = nomeVariabile.replace(/_/g, ' '); 
+              
+              // Se il nome fornito dal backend è troppo lungo, lo tronchiamo con i puntini
+              if(nomeVariabile.length > 18) {
+                  nomeVariabile = nomeVariabile.substring(0, 16) + '...';
+              }
 
-          function boxValore(ctx, x, y, titolo, valore, unita, colore) {
-              ctx.fillStyle = '#1e293b'; ctx.beginPath(); ctx.roundRect(x, y, 400, 300, 20); ctx.fill();
-              ctx.fillStyle = '#94a3b8'; ctx.font = '35px sans-serif'; ctx.fillText(titolo, x+40, y+70);
-              ctx.fillStyle = colore; ctx.font = 'bold 110px monospace'; ctx.fillText(valore, x+40, y+200);
-              ctx.fillStyle = '#94a3b8'; ctx.font = '40px sans-serif'; ctx.fillText(unita, x+280, y+200);
+              // Estrapola il valore e lo formatta a un decimale se è un numero
+              let valore = item.value;
+              if (typeof valore === 'number') {
+                  valore = valore.toFixed(1);
+              }
+
+              // ALGORITMO DI IMPAGINAZIONE (Calcola Riga e Colonna)
+              const colonna = i % 4; // 0, 1, 2, 3
+              const riga = Math.floor(i / 4); // 0, 1, 2...
+
+              // Calcolo coordinate X e Y in base a riga e colonna
+              const x = startX + colonna * (boxW + gapX);
+              const y = startY + riga * (boxH + gapY);
+
+              // Disegna la "scatola" di sfondo per il dato
+              ctx.fillStyle = '#1e293b';
+              ctx.beginPath();
+              ctx.roundRect(x, y, boxW, boxH, 20);
+              ctx.fill();
+
+              // Scrivi il nome della variabile (dal database) in grigio
+              ctx.fillStyle = '#94a3b8';
+              ctx.font = '24px sans-serif';
+              ctx.fillText(nomeVariabile, x + 25, y + 50);
+
+              // Scrivi il valore reale in bianco grande
+              ctx.fillStyle = '#ffffff';
+              ctx.font = 'bold 70px monospace';
+              ctx.fillText(valore, x + 25, y + 140);
           }
 
-          boxValore(ctxMacchina, 80, 250, "T. Mandata", tMandata, "°C", "#ef4444");
-          boxValore(ctxMacchina, 530, 250, "T. Ritorno", tRitorno, "°C", "#3b82f6");
-          boxValore(ctxMacchina, 980, 250, "Setpoint (SP)", setpoint, "°C", "#10b981");
-
-          const plane = document.getElementById('plane-macchina');
-          if(plane && plane.getObject3D('mesh')) plane.getObject3D('mesh').material.map.needsUpdate = true;
-      }
-
-      function disegnaPannelloIAQ(datiJson) {
-          // Entriamo nella "scatola" giusta del JSON dell'aria
-          const signals = datiJson.message.signals;
-          const getSignal = (nome) => {
-              const s = signals.find(s => s.name === nome);
-              return s ? s.value : 0;
-          };
-
-          const co2 = getSignal("co2");
-          const temp = getSignal("temper");
-          const hum = getSignal("humid");
-          const pm10 = getSignal("piemmedieci");
-
-          ctxIaq.fillStyle = '#0f172a';
-          ctxIaq.fillRect(0, 0, 1600, 900);
-
-          ctxIaq.fillStyle = '#ffffff';
-          ctxIaq.font = 'bold 70px sans-serif';
-          ctxIaq.fillText('MONITORAGGIO IAQ - DEVICE 1', 80, 120);
-
-          ctxIaq.fillStyle = '#cbd5e1'; ctxIaq.font = '40px sans-serif'; ctxIaq.fillText('Anidride Carbonica (CO2)', 80, 250);
-          const gradiente = ctxIaq.createLinearGradient(80, 0, 1080, 0);
-          gradiente.addColorStop(0, '#10b981'); gradiente.addColorStop(0.5, '#facc15'); gradiente.addColorStop(1, '#ef4444');
-          ctxIaq.fillStyle = gradiente; ctxIaq.beginPath(); ctxIaq.roundRect(80, 280, 1000, 60, 30); ctxIaq.fill();
-          
-          let perc = (co2 - 400) / (2000 - 400); if(perc>1) perc=1; if(perc<0) perc=0;
-          const indX = 80 + (1000 * perc);
-          ctxIaq.fillStyle = '#ffffff'; ctxIaq.beginPath(); ctxIaq.arc(indX, 310, 20, 0, Math.PI*2); ctxIaq.fill();
-          
-          ctxIaq.font = 'bold 90px monospace'; ctxIaq.fillText(Math.round(co2), 1150, 340);
-          ctxIaq.fillStyle = '#94a3b8'; ctxIaq.font = '40px sans-serif'; ctxIaq.fillText('ppm', 1400, 340);
-
-          function boxMeteo(x, y, titolo, valore, unita) {
-              ctxIaq.fillStyle = '#1e293b'; ctxIaq.beginPath(); ctxIaq.roundRect(x, y, 420, 250, 20); ctxIaq.fill();
-              ctxIaq.fillStyle = '#94a3b8'; ctxIaq.font = '35px sans-serif'; ctxIaq.fillText(titolo, x+40, y+60);
-              ctxIaq.fillStyle = '#ffffff'; ctxIaq.font = 'bold 90px monospace'; ctxIaq.fillText(valore, x+40, y+170);
-              ctxIaq.fillStyle = '#94a3b8'; ctxIaq.font = '40px sans-serif'; ctxIaq.fillText(unita, x+280, y+170);
+          // Aggiorna l'ologramma 3D in AR
+          const plane = document.getElementById(planeId);
+          if(plane && plane.getObject3D('mesh')) {
+              plane.getObject3D('mesh').material.map.needsUpdate = true;
           }
-
-          boxMeteo(80, 480, "Temperatura", temp.toFixed(1), "°C");
-          boxMeteo(550, 480, "Umidità", hum.toFixed(1), "%");
-          boxMeteo(1020, 480, "Polveri PM10", pm10.toFixed(1), "µg");
-
-          const plane = document.getElementById('plane-iaq');
-          if(plane && plane.getObject3D('mesh')) plane.getObject3D('mesh').material.map.needsUpdate = true;
       }
 
       // ==========================================
-      // IL MOTORE DI RETE: LEGGE I DUE FILE JSON
+      // 3. IL MOTORE DI RETE: INTERROGA GLI ENDPOINT URL
       // ==========================================
       async function scaricaDatiDaEndpoint() {
           
-          // Legge il file dati-endpoint.json per il Marker 0
-          try {
-              const rispostaMacchina = await fetch('./dati-endpoint.json');
-              const datiMacchina = await rispostaMacchina.json();
-              disegnaPannelloMacchina(datiMacchina);
-          } catch (errore) {
-              console.error("Non riesco a leggere dati-endpoint.json", errore);
+          // --- DEVICE 0: CENTRALE TERMICA ---
+          // Esegue la chiamata solo se l'URL non è vuoto
+          if (ENDPOINT_0 !== "") {
+              try {
+                  const rispostaMacchina = await fetch(ENDPOINT_0);
+                  const datiMacchina = await rispostaMacchina.json();
+                  
+                  // L'endpoint 0 restituisce direttamente l'array dei dati.
+                  // Lo passiamo alla nostra funzione dinamica.
+                  disegnaGrigliaDinamica(ctxMacchina, datiMacchina, 'CENTRALE TERMICA - DEVICE 0', 'plane-macchina');
+              } catch (errore) {
+                  console.error("Errore di connessione a ENDPOINT_0:", errore);
+              }
           }
 
-          // Legge il file messagio-iaq.json per il Marker 1
-          try {
-              const rispostaIaq = await fetch('./messagio-iaq.json');
-              const datiIaq = await rispostaIaq.json();
-              disegnaPannelloIAQ(datiIaq);
-          } catch (errore) {
-              console.error("Non riesco a leggere messagio-iaq.json", errore);
+          // --- DEVICE 1: MONITORAGGIO IAQ ---
+          if (ENDPOINT_1 !== "") {
+              try {
+                  const rispostaIaq = await fetch(ENDPOINT_1);
+                  const jsonIaq = await rispostaIaq.json();
+                  
+                  // L'endpoint 1 restituisce i dati dentro una scatola "message.signals"
+                  const datiIaq = jsonIaq.message.signals;
+                  
+                  // Lo passiamo alla nostra funzione dinamica.
+                  disegnaGrigliaDinamica(ctxIaq, datiIaq, 'MONITORAGGIO IAQ - DEVICE 1', 'plane-iaq');
+              } catch (errore) {
+                  console.error("Errore di connessione a ENDPOINT_1:", errore);
+              }
           }
       }
 
-      // Avvia la lettura dei file ogni 3 secondi e aggiorna la grafica
+      // Interroga gli URL ogni 3 secondi per aggiornare la grafica in tempo reale
       setInterval(scaricaDatiDaEndpoint, 3000);
       scaricaDatiDaEndpoint();
 
