@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>EURIX - AR Ultimate Factory Dashboard (UI Edition)</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+      #ui-controls {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        display: none; /* Nascosto finché non si inquadra un marker */
+        background: rgba(15, 23, 42, 0.9);
+        padding: 15px 25px;
+        border-radius: 20px;
+        border: 2px solid #3b82f6;
+        display: flex; /* Attivato via JS */
+        gap: 20px;
+        align-items: center;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      }
+      .btn-ar {
+        background: #1e293b;
+        color: #ffffff;
+        border: 2px solid #94a3b8;
+        padding: 12px 20px;
+        font-size: 20px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-family: sans-serif;
+        font-weight: bold;
+        transition: all 0.2s;
+      }
+      .btn-ar:active { background: #3b82f6; border-color: #ffffff; }
+      .btn-danger { background: #ef4444; border-color: #fca5a5; display: none; }
+      .btn-danger:active { background: #b91c1c; }
+    </style>
+  </head>
+  
+  <body style="margin: 0; overflow: hidden;">
+
+    <div id="ui-controls" style="display: none;">
+      <button id="btn-zoom-out" class="btn-ar">➖ Zoom</button>
+      <button id="btn-zoom-in" class="btn-ar">➕ Zoom</button>
+      <button id="btn-pin" class="btn-ar">📌 Fissa a Schermo</button>
+      <button id="btn-unpin" class="btn-ar btn-danger">❌ Chiudi Pannello</button>
+    </div>
+
+    <canvas id="canvas-macchina" width="1600" height="900" style="display:none;"></canvas>
+    <canvas id="canvas-iaq" width="1600" height="900" style="display:none;"></canvas>
+    <canvas id="canvas-chart" width="1600" height="900" style="display:none;"></canvas>
+    <canvas id="canvas-alarm" width="1600" height="900" style="display:none;"></canvas>
+    <canvas id="canvas-hot" width="1024" height="256" style="display:none;"></canvas>
+    <canvas id="canvas-cold" width="1024" height="256" style="display:none;"></canvas>
+
+    <a-scene embedded 
+             arjs="sourceType: webcam; detectionMode: mono_and_matrix; matrixCodeType: 3x3; debugUIEnabled: false;"
+             renderer="antialias: true;">
+      
+      <a-marker id="marker-0" type="barcode" value="0" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
+        <a-entity id="content-0" rotation="-75 0 0">
+          <a-plane id="plane-macchina" position="0 1.5 0" width="4.8" height="2.7" material="src: #canvas-macchina; shader: flat;"></a-plane>
+        </a-entity>
+      </a-marker>
+
+      <a-marker id="marker-1" type="barcode" value="1" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
+        <a-entity id="content-1" rotation="-75 0 0">
+          <a-plane id="plane-iaq" position="0 1.5 0" width="4.8" height="2.7" material="src: #canvas-iaq; shader: flat;"></a-plane>
+        </a-entity>
+      </a-marker>
+
+      <a-marker id="marker-2" type="barcode" value="2" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
+        <a-entity id="content-2" rotation="-75 0 0">
+          <a-plane id="plane-chart" position="0 1.5 0" width="4.8" height="2.7" material="src: #canvas-chart; shader: flat;"></a-plane>
+        </a-entity>
+      </a-marker>
+
+      <a-marker id="marker-3" type="barcode" value="3" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
+        <a-entity id="content-3" rotation="-75 0 0">
+          <a-plane id="plane-alarm" position="0 1.5 0" width="4.8" height="2.7" material="src: #canvas-alarm; shader: flat;"></a-plane>
+        </a-entity>
+      </a-marker>
+
+      <a-marker id="marker-4" type="barcode" value="4" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
+        <a-entity id="content-4" rotation="-75 0 0">
+          <a-entity position="0 2 0">
+            <a-plane id="plane-hot" position="0 1.2 0" width="3.8" height="0.95" material="src: #canvas-hot; transparent: true; shader: flat;"></a-plane>
+            <a-cylinder radius="0.3" height="4.5" rotation="0 0 90" color="#111" opacity="0.4" transparent="true"></a-cylinder>
+            <a-entity animation="property: position; from: -1.5 0 0; to: 1.5 0 0; loop: true; dur: 2000; easing: linear">
+              <a-cone class="arrow-hot" radius-bottom="0.2" height="0.5"
