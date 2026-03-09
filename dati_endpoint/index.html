@@ -30,87 +30,33 @@
 
       <a-entity camera look-controls="enabled: false" wasd-controls="enabled: false"></a-entity>
     </a-scene>
-
-    <script>
+<script>
       // ==========================================
       // 1. INSERISCI QUI GLI URL DEGLI ENDPOINT
       // ==========================================
-      const ENDPOINT_0 = "http://192.168.37.201:1880/api/device/0"; // Esempio: "http://192.168.1.100:8080/api/device/0"
-      const ENDPOINT_1 = "http://192.168.37.201:1880/api/device/1";      // Esempio: "http://192.168.1.100:8080/api/device/1"
+      const ENDPOINT_MACCHINA = ""; // Esempio: "http://192.168.1.xxx:8080/api/device/0"
+      const ENDPOINT_IAQ = "";      // Esempio: "http://192.168.1.xxx:8080/api/device/1"
 
       const ctxMacchina = document.getElementById('canvas-macchina').getContext('2d');
       const ctxIaq = document.getElementById('canvas-iaq').getContext('2d');
 
       // ==========================================
-      // 2. FUNZIONE GENERATRICE DELLA GRIGLIA DINAMICA
+      // 2. FUNZIONE DI EMERGENZA (Pannello di Attesa)
       // ==========================================
-      // Questa funzione prende un array di dati e lo trasforma automaticamente in box a schermo
-      function disegnaGrigliaDinamica(ctx, datiArray, titoloPannello, planeId) {
-          
-          // Sfondo scuro per il pannello
-          ctx.fillStyle = '#0f172a';
+      function disegnaPannelloAttesa(ctx, titolo, planeId) {
+          ctx.fillStyle = '#0f172a'; // Sfondo blu scuro
           ctx.fillRect(0, 0, 1600, 900);
 
-          // Disegna il titolo in alto
           ctx.fillStyle = '#ffffff';
           ctx.font = 'bold 70px sans-serif';
-          ctx.fillText(titoloPannello, 80, 120);
+          ctx.fillText(titolo, 80, 120);
 
-          // Impostazioni geometriche della griglia (4 Colonne x 3 Righe max)
-          const startX = 80;
-          const startY = 180;
-          const boxW = 330;  // Larghezza del singolo quadratino
-          const boxH = 200;  // Altezza del singolo quadratino
-          const gapX = 40;   // Spazio orizzontale tra i box
-          const gapY = 40;   // Spazio verticale tra i box
+          // Testo di avviso giallo
+          ctx.fillStyle = '#facc15'; 
+          ctx.font = 'italic 50px sans-serif';
+          ctx.fillText('Nessun dato in arrivo. In attesa del Server...', 80, 450);
+          ctx.fillText('Verificare che l\'URL dell\'Endpoint sia inserito nel codice.', 80, 530);
 
-          // Limitiamo a un massimo di 12 elementi per non sbordare dalla tela 1600x900
-          const maxElements = Math.min(datiArray.length, 12);
-
-          for (let i = 0; i < maxElements; i++) {
-              const item = datiArray[i];
-              
-              // Estrapola il nome e puliscilo (sostituisce gli underscore con spazi per estetica)
-              let nomeVariabile = item.name || "N/D";
-              nomeVariabile = nomeVariabile.replace(/_/g, ' '); 
-              
-              // Se il nome fornito dal backend è troppo lungo, lo tronchiamo con i puntini
-              if(nomeVariabile.length > 18) {
-                  nomeVariabile = nomeVariabile.substring(0, 16) + '...';
-              }
-
-              // Estrapola il valore e lo formatta a un decimale se è un numero
-              let valore = item.value;
-              if (typeof valore === 'number') {
-                  valore = valore.toFixed(1);
-              }
-
-              // ALGORITMO DI IMPAGINAZIONE (Calcola Riga e Colonna)
-              const colonna = i % 4; // 0, 1, 2, 3
-              const riga = Math.floor(i / 4); // 0, 1, 2...
-
-              // Calcolo coordinate X e Y in base a riga e colonna
-              const x = startX + colonna * (boxW + gapX);
-              const y = startY + riga * (boxH + gapY);
-
-              // Disegna la "scatola" di sfondo per il dato
-              ctx.fillStyle = '#1e293b';
-              ctx.beginPath();
-              ctx.roundRect(x, y, boxW, boxH, 20);
-              ctx.fill();
-
-              // Scrivi il nome della variabile (dal database) in grigio
-              ctx.fillStyle = '#94a3b8';
-              ctx.font = '24px sans-serif';
-              ctx.fillText(nomeVariabile, x + 25, y + 50);
-
-              // Scrivi il valore reale in bianco grande
-              ctx.fillStyle = '#ffffff';
-              ctx.font = 'bold 70px monospace';
-              ctx.fillText(valore, x + 25, y + 140);
-          }
-
-          // Aggiorna l'ologramma 3D in AR
           const plane = document.getElementById(planeId);
           if(plane && plane.getObject3D('mesh')) {
               plane.getObject3D('mesh').material.map.needsUpdate = true;
@@ -118,43 +64,89 @@
       }
 
       // ==========================================
-      // 3. IL MOTORE DI RETE: INTERROGA GLI ENDPOINT URL
+      // 3. FUNZIONE GENERATRICE DELLA GRIGLIA DINAMICA
       // ==========================================
-      async function scaricaDatiDaEndpoint() {
-          
-          // --- DEVICE 0: CENTRALE TERMICA ---
-          // Esegue la chiamata solo se l'URL non è vuoto
-          if (ENDPOINT_0 !== "") {
-              try {
-                  const rispostaMacchina = await fetch(ENDPOINT_0);
-                  const datiMacchina = await rispostaMacchina.json();
-                  
-                  // L'endpoint 0 restituisce direttamente l'array dei dati.
-                  // Lo passiamo alla nostra funzione dinamica.
-                  disegnaGrigliaDinamica(ctxMacchina, datiMacchina, 'CENTRALE TERMICA - DEVICE 0', 'plane-macchina');
-              } catch (errore) {
-                  console.error("Errore di connessione a ENDPOINT_0:", errore);
-              }
+      function disegnaGrigliaDinamica(ctx, datiArray, titoloPannello, planeId) {
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(0, 0, 1600, 900);
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 70px sans-serif';
+          ctx.fillText(titoloPannello, 80, 120);
+
+          const startX = 80, startY = 180, boxW = 330, boxH = 200, gapX = 40, gapY = 40;
+          const maxElements = Math.min(datiArray.length, 12);
+
+          for (let i = 0; i < maxElements; i++) {
+              const item = datiArray[i];
+              let nomeVariabile = item.name || "N/D";
+              nomeVariabile = nomeVariabile.replace(/_/g, ' '); 
+              if(nomeVariabile.length > 18) nomeVariabile = nomeVariabile.substring(0, 16) + '...';
+
+              let valore = item.value;
+              if (typeof valore === 'number') valore = valore.toFixed(1);
+
+              const colonna = i % 4; 
+              const riga = Math.floor(i / 4); 
+              const x = startX + colonna * (boxW + gapX);
+              const y = startY + riga * (boxH + gapY);
+
+              ctx.fillStyle = '#1e293b';
+              ctx.beginPath();
+              ctx.roundRect(x, y, boxW, boxH, 20);
+              ctx.fill();
+
+              ctx.fillStyle = '#94a3b8';
+              ctx.font = '24px sans-serif';
+              ctx.fillText(nomeVariabile, x + 25, y + 50);
+
+              ctx.fillStyle = '#ffffff';
+              ctx.font = 'bold 70px monospace';
+              ctx.fillText(valore, x + 25, y + 140);
           }
 
-          // --- DEVICE 1: MONITORAGGIO IAQ ---
-          if (ENDPOINT_1 !== "") {
-              try {
-                  const rispostaIaq = await fetch(ENDPOINT_1);
-                  const jsonIaq = await rispostaIaq.json();
-                  
-                  // L'endpoint 1 restituisce i dati dentro una scatola "message.signals"
-                  const datiIaq = jsonIaq.message.signals;
-                  
-                  // Lo passiamo alla nostra funzione dinamica.
-                  disegnaGrigliaDinamica(ctxIaq, datiIaq, 'MONITORAGGIO IAQ - DEVICE 1', 'plane-iaq');
-              } catch (errore) {
-                  console.error("Errore di connessione a ENDPOINT_1:", errore);
-              }
+          const plane = document.getElementById(planeId);
+          if(plane && plane.getObject3D('mesh')) {
+              plane.getObject3D('mesh').material.map.needsUpdate = true;
           }
       }
 
-      // Interroga gli URL ogni 3 secondi per aggiornare la grafica in tempo reale
+      // ==========================================
+      // 4. IL MOTORE DI RETE: INTERROGA GLI ENDPOINT
+      // ==========================================
+      async function scaricaDatiDaEndpoint() {
+          
+          // --- DEVICE 0 ---
+          if (ENDPOINT_MACCHINA !== "") {
+              try {
+                  const risposta = await fetch(ENDPOINT_MACCHINA);
+                  if(!risposta.ok) throw new Error("Errore Server");
+                  const dati = await risposta.json();
+                  disegnaGrigliaDinamica(ctxMacchina, dati, 'CENTRALE TERMICA - DEVICE 0', 'plane-macchina');
+              } catch (errore) {
+                  disegnaPannelloAttesa(ctxMacchina, 'CENTRALE TERMICA - DEVICE 0 (Errore di Rete)', 'plane-macchina');
+              }
+          } else {
+              // Se l'URL è vuoto (""), disegna il pannello di attesa invece di lasciare tutto invisibile
+              disegnaPannelloAttesa(ctxMacchina, 'CENTRALE TERMICA - DEVICE 0', 'plane-macchina');
+          }
+
+          // --- DEVICE 1 ---
+          if (ENDPOINT_IAQ !== "") {
+              try {
+                  const risposta = await fetch(ENDPOINT_IAQ);
+                  if(!risposta.ok) throw new Error("Errore Server");
+                  const json = await risposta.json();
+                  const dati = json.message.signals;
+                  disegnaGrigliaDinamica(ctxIaq, dati, 'MONITORAGGIO IAQ - DEVICE 1', 'plane-iaq');
+              } catch (errore) {
+                  disegnaPannelloAttesa(ctxIaq, 'MONITORAGGIO IAQ - DEVICE 1 (Errore di Rete)', 'plane-iaq');
+              }
+          } else {
+              disegnaPannelloAttesa(ctxIaq, 'MONITORAGGIO IAQ - DEVICE 1', 'plane-iaq');
+          }
+      }
+
       setInterval(scaricaDatiDaEndpoint, 3000);
       scaricaDatiDaEndpoint();
 
