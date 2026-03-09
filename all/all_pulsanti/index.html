@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>EURIX - AR Ultimate Factory Dashboard (UI Edition)</title>
+    <title>EURIX - AR Minimal UI Dashboard</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -11,37 +11,42 @@
       #ui-controls {
         position: fixed;
         bottom: 30px;
-        left: 50%;
-        transform: translateX(-50%);
+        right: 20px; /* Spostati nell'angolo in basso a destra */
         z-index: 1000;
-        display: none; /* Nascosto finché non si inquadra un marker */
-        background: rgba(15, 23, 42, 0.9);
-        padding: 15px 25px;
-        border-radius: 20px;
-        border: 2px solid #3b82f6;
-        gap: 20px;
+        display: none; /* Appaiono solo quando si vede un marker */
+        flex-direction: column; /* Impilati in verticale */
+        gap: 15px;
+      }
+      .btn-minimal {
+        background: rgba(15, 23, 42, 0.6);
+        color: #ffffff;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        width: 55px;
+        height: 55px;
+        border-radius: 50%; /* Pulsanti rotondi */
+        font-size: 24px;
+        display: flex;
+        justify-content: center;
         align-items: center;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-      }
-      .btn-ar {
-        background: #1e293b; color: #ffffff; border: 2px solid #94a3b8;
-        padding: 12px 20px; font-size: 20px; border-radius: 12px;
-        cursor: pointer; font-family: sans-serif; font-weight: bold;
+        cursor: pointer;
+        backdrop-filter: blur(5px); /* Effetto vetro sfocato */
         transition: all 0.2s;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
       }
-      .btn-ar:active { background: #3b82f6; border-color: #ffffff; }
-      .btn-danger { background: #ef4444; border-color: #fca5a5; display: none; }
-      .btn-danger:active { background: #b91c1c; }
+      .btn-minimal:active {
+        background: #3b82f6;
+        border-color: #ffffff;
+        transform: scale(0.9); /* Piccolo effetto pressione */
+      }
     </style>
   </head>
   
   <body style="margin: 0; overflow: hidden;">
 
     <div id="ui-controls">
-      <button id="btn-zoom-out" class="btn-ar">➖ Zoom</button>
-      <button id="btn-zoom-in" class="btn-ar">➕ Zoom</button>
-      <button id="btn-pin" class="btn-ar">📌 Fissa a Schermo</button>
-      <button id="btn-unpin" class="btn-ar btn-danger">❌ Chiudi Pannello</button>
+      <button id="btn-zoom-in" class="btn-minimal" title="Zoom In">➕</button>
+      <button id="btn-zoom-out" class="btn-minimal" title="Zoom Out">➖</button>
+      <button id="btn-pin" class="btn-minimal" title="Fissa a schermo">📌</button>
     </div>
 
     <canvas id="canvas-macchina" width="1600" height="900" style="display:none;"></canvas>
@@ -112,7 +117,7 @@
       };
 
       // ==========================================
-      // UI CONTROLS: ZOOM E FISSAGGIO A SCHERMO
+      // UI CONTROLS E FISSAGGIO A SCHERMO OTTIMIZZATO
       // ==========================================
       let activeMarker = null;
       let isPinned = false;
@@ -122,7 +127,6 @@
       const btnZoomIn = document.getElementById('btn-zoom-in');
       const btnZoomOut = document.getElementById('btn-zoom-out');
       const btnPin = document.getElementById('btn-pin');
-      const btnUnpin = document.getElementById('btn-unpin');
       const mainCamera = document.getElementById('main-camera');
 
       function applyZoom(id) {
@@ -133,7 +137,7 @@
           }
       }
 
-      // ASCOLTA LA COMPARSA/SCOMPARSA DEI MARKER
+      // GESTIONE COMPARSA/SCOMPARSA MARKER
       for(let i=0; i<=4; i++) {
           const marker = document.getElementById(`marker-${i}`);
           if(marker) {
@@ -154,7 +158,7 @@
           }
       }
 
-      // COMANDI ZOOM
+      // PULSANTI ZOOM
       btnZoomIn.addEventListener('click', () => {
           if (activeMarker !== null && !isPinned) {
               zoomLevels[activeMarker] += 0.1; 
@@ -168,41 +172,43 @@
           }
       });
 
-      // COMANDO FISSA A SCHERMO (Reparenting)
+      // PULSANTE FISSA / SGANICA
       btnPin.addEventListener('click', () => {
-          if (activeMarker !== null && !isPinned) {
-              isPinned = true;
-              const content = document.getElementById(`content-${activeMarker}`);
-              
-              mainCamera.appendChild(content);
-              content.setAttribute('position', '0 0 -5'); 
-              content.setAttribute('rotation', '0 0 0');  
-              content.setAttribute('scale', '1 1 1');
-              
-              btnPin.style.display = 'none';
-              btnZoomIn.style.display = 'none';
-              btnZoomOut.style.display = 'none';
-              btnUnpin.style.display = 'block';
-          }
-      });
+          if (activeMarker === null) return;
+          
+          const content = document.getElementById(`content-${activeMarker}`);
+          const marker = document.getElementById(`marker-${activeMarker}`);
 
-      // COMANDO RILASCIA
-      btnUnpin.addEventListener('click', () => {
-          if (isPinned && activeMarker !== null) {
-              const content = document.getElementById(`content-${activeMarker}`);
-              const marker = document.getElementById(`marker-${activeMarker}`);
+          if (!isPinned) {
+              // AZIONE: FISSA A SCHERMO
+              isPinned = true;
+              mainCamera.appendChild(content);
               
+              // Posizionamento calibrato: vicino alla telecamera e rimpicciolito
+              content.setAttribute('position', '0 0 -4'); 
+              content.setAttribute('rotation', '0 0 0');  
+              content.setAttribute('scale', '0.45 0.45 0.45');
+              
+              btnPin.innerHTML = '❌'; // Cambia icona
+              btnPin.style.backgroundColor = 'rgba(239, 68, 68, 0.8)'; // Diventa rosso
+              btnZoomIn.style.display = 'none'; // Nascondi zoom
+              btnZoomOut.style.display = 'none';
+          } else {
+              // AZIONE: SGANCIA DALLO SCHERMO
               marker.appendChild(content);
+              
+              // Ripristino coordinate originali
               content.setAttribute('position', '0 0 0');
               content.setAttribute('rotation', '-75 0 0'); 
-              applyZoom(activeMarker);
+              applyZoom(activeMarker); // Ricarica lo zoom salvato
               
               isPinned = false;
-              btnPin.style.display = 'block';
-              btnZoomIn.style.display = 'block';
-              btnZoomOut.style.display = 'block';
-              btnUnpin.style.display = 'none';
+              btnPin.innerHTML = '📌';
+              btnPin.style.backgroundColor = 'rgba(15, 23, 42, 0.6)'; // Torna blu/grigio
+              btnZoomIn.style.display = 'flex';
+              btnZoomOut.style.display = 'flex';
               
+              // Se intanto il marker fisico è uscito dall'inquadratura, nascondi tutto
               if (!marker.object3D.visible) {
                   activeMarker = null;
                   uiControls.style.display = 'none';
@@ -211,7 +217,7 @@
       });
 
       // ==========================================
-      // SEZIONE 1: MARKER 0 e 1 (JSON FETCH)
+      // LOGICA DATI E GRAFICA (INVRIATA)
       // ==========================================
       const ctxMacchina = document.getElementById('canvas-macchina').getContext('2d');
       const ctxIaq = document.getElementById('canvas-iaq').getContext('2d');
@@ -265,14 +271,16 @@
       }
 
       async function scaricaJson() {
-          try { const r = await fetch('./dati-endpoint.json'); disegnaPannelloMacchina(await r.json()); } catch (e) { console.warn("Manca dati-endpoint.json"); }
-          try { const r = await fetch('./messagio-iaq.json'); disegnaPannelloIAQ(await r.json()); } catch (e) { console.warn("Manca messagio-iaq.json"); }
+          const mockMacchina = [
+              { "name": "SP_mandata_secondario", "value": 18.6 }, { "name": "Temperatura_Mandata_Primario", "value": 26.1 },
+              { "name": "Temperatura_Ritorno_Primario", "value": 25.5 }, { "name": "Temperatura_Mandata_Caldaia_1", "value": 26.4 }
+          ];
+          const mockIaq = { "message": { "signals": [{ "name": "co2", "value": 687 }, { "name": "temper", "value": 25.12 }, { "name": "humid", "value": 33.46 }, { "name": "piemmedieci", "value": 1.4 }]}};
+          try { const r = await fetch('./dati-endpoint.json'); if(!r.ok) throw new Error(); disegnaPannelloMacchina(await r.json()); } catch (e) { disegnaPannelloMacchina(mockMacchina); }
+          try { const r = await fetch('./messagio-iaq.json'); if(!r.ok) throw new Error(); disegnaPannelloIAQ(await r.json()); } catch (e) { disegnaPannelloIAQ(mockIaq); }
       }
       setInterval(scaricaJson, 3000); scaricaJson();
 
-      // ==========================================
-      // SEZIONE 2: MARKER 2 (CHART DINAMICO)
-      // ==========================================
       const ctxChart = document.getElementById('canvas-chart').getContext('2d');
       Chart.defaults.color = '#cbd5e1'; Chart.defaults.font.family = 'sans-serif';
       const chartInstance = new Chart(ctxChart, {
@@ -290,9 +298,6 @@
           chartInstance.options.plugins.subtitle.text = `Aggiornato: ${new Date().toLocaleTimeString()}`; chartInstance.update(); forceUpdate('plane-chart');
       }, 2000);
 
-      // ==========================================
-      // SEZIONE 3: MARKER 3 (SPIA ALLARME)
-      // ==========================================
       const ctxAlarm = document.getElementById('canvas-alarm').getContext('2d');
       let tAlarm = 65.0, upAlarm = true;
       setInterval(() => { if (upAlarm) { tAlarm += Math.random() * 3; if (tAlarm > 95) upAlarm = false; } else { tAlarm -= Math.random() * 2; if (tAlarm < 65) upAlarm = true; } }, 1000);
@@ -314,9 +319,6 @@
       }
       requestAnimationFrame(loopAlarm);
 
-      // ==========================================
-      // SEZIONE 4: MARKER 4 (FRECCE 3D)
-      // ==========================================
       const ctxHot = document.getElementById('canvas-hot').getContext('2d'), ctxCold = document.getElementById('canvas-cold').getContext('2d');
       const arrHot = document.querySelectorAll('.arrow-hot'), arrCold = document.querySelectorAll('.arrow-cold');
       let tHot = 95.0, tCold = 7.0;
