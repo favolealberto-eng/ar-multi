@@ -226,7 +226,12 @@
       if (ENDPOINT_MACCHINA !== "") {
         try {
           // Fetch REST call: recupera array o oggetto dall'API specificata
-          const risposta = await fetch(ENDPOINT_MACCHINA);
+          const risposta = await fetch(ENDPOINT_MACCHINA, {
+            headers: {
+              "ngrok-skip-browser-warning": "69420"
+            }
+          });
+
           // Verifica di avere 200 OK
           if (!risposta.ok) throw new Error("Errore Server");
           // Recupero del Payload 
@@ -247,7 +252,11 @@
       // --- RECUPERO DATI DEVICE 1 ---
       if (ENDPOINT_IAQ !== "") {
         try {
-          const risposta = await fetch(ENDPOINT_IAQ);
+          const risposta = await fetch(ENDPOINT_IAQ, {
+            headers: {
+              "ngrok-skip-browser-warning": "69420"
+            }
+          });
           if (!risposta.ok) throw new Error("Errore Server");
 
           // Da notare che le API potrebbero tornare una struttura annidata che dobbiamo parsare (adattare dal backend).
