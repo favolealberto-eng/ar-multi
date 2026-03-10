@@ -6,9 +6,60 @@
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+      /* PULSANTIERA AR MINIMALE */
+      #ui-controls {
+        position: fixed; bottom: 30px; right: 20px; z-index: 1000;
+        display: none; flex-direction: column; gap: 15px;
+      }
+      .btn-minimal {
+        background: rgba(15, 23, 42, 0.6); color: #ffffff;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        width: 55px; height: 55px; border-radius: 50%;
+        font-size: 24px; display: flex; justify-content: center; align-items: center;
+        cursor: pointer; backdrop-filter: blur(5px); box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      }
+      .btn-pin { background: rgba(249, 115, 22, 0.8); }
+
+      /* MODALE 2D (Sfondo Scuro) */
+      #hud-modal {
+        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.85); z-index: 999999;
+        flex-direction: column; align-items: center; justify-content: center;
+      }
+
+      /* HEADER DELLA MODALE (Pulsanti Chiudi) */
+      #modal-header {
+        position: absolute; top: 20px; width: 90%; max-width: 1000px;
+        display: flex; justify-content: flex-end; align-items: center;
+      }
+      .btn-close {
+        background: #ef4444; color: white; border: none; width: 45px; height: 45px;
+        border-radius: 50%; font-size: 20px; font-weight: bold; cursor: pointer;
+      }
+
+      /* CLASSI PER IL CANVAS PRINCIPALE QUANDO FISSATO */
+      .canvas-pinned {
+        display: block !important; width: 90% !important; max-width: 1000px !important;
+        height: auto !important; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        border: 3px solid #3b82f6;
+      }
+    </style>
   </head>
   
-  <body style="margin: 0; overflow: hidden;">
+  <body style="margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif;">
+
+    <div id="ui-controls">
+      <button class="btn-minimal btn-pin" onclick="pinToScreen()">📌</button>
+    </div>
+
+    <div id="hud-modal">
+      <div id="modal-header">
+        <button class="btn-close" onclick="unpinFromScreen()">✖</button>
+      </div>
+      <div id="main-view-container"></div>
+    </div>
 
     <canvas id="canvas-macchina" width="1600" height="900" style="display:none;"></canvas>
     <canvas id="canvas-iaq" width="1600" height="900" style="display:none;"></canvas>
@@ -24,31 +75,31 @@
              arjs="sourceType: webcam; detectionMode: mono_and_matrix; matrixCodeType: 3x3; debugUIEnabled: false;"
              renderer="antialias: true;">
       
-      <a-marker type="barcode" value="0" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
+      <a-marker id="marker-0" type="barcode" value="0" emitevents="true" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
         <a-entity rotation="-75 0 0">
           <a-plane id="plane-macchina" position="0 1.5 0" width="4.8" height="2.7" material="src: #canvas-macchina; shader: flat;"></a-plane>
         </a-entity>
       </a-marker>
 
-      <a-marker type="barcode" value="1" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
+      <a-marker id="marker-1" type="barcode" value="1" emitevents="true" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
         <a-entity rotation="-75 0 0">
           <a-plane id="plane-iaq" position="0 1.5 0" width="4.8" height="2.7" material="src: #canvas-iaq; shader: flat;"></a-plane>
         </a-entity>
       </a-marker>
 
-      <a-marker type="barcode" value="2" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
+      <a-marker id="marker-2" type="barcode" value="2" emitevents="true" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
         <a-entity rotation="-75 0 0">
           <a-plane id="plane-chart" position="0 1.5 0" width="4.8" height="2.7" material="src: #canvas-chart; shader: flat;"></a-plane>
         </a-entity>
       </a-marker>
 
-      <a-marker type="barcode" value="3" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
+      <a-marker id="marker-3" type="barcode" value="3" emitevents="true" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
         <a-entity rotation="-75 0 0">
           <a-plane id="plane-alarm" position="0 1.5 0" width="4.8" height="2.7" material="src: #canvas-alarm; shader: flat;"></a-plane>
         </a-entity>
       </a-marker>
 
-      <a-marker type="barcode" value="4" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
+      <a-marker id="marker-4" type="barcode" value="4" emitevents="true" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
         <a-entity rotation="-75 0 0">
           
           <a-entity position="0 2 0">
@@ -78,6 +129,127 @@
     </a-scene>
 
     <script>
+      // ==========================================
+      // LOGICA DELL'INTERFACCIA (PIN E NAVIGAZIONE) E CSV MARKERS
+      // ==========================================
+      let isPinned = false;
+      let activeCanvasId = null; 
+
+      // Mappatura canvas per ciascun marker id
+      const markerCanvasMap = {
+          'marker-0': 'canvas-macchina',
+          'marker-1': 'canvas-iaq',
+          'marker-2': 'canvas-chart',
+          'marker-3': 'canvas-alarm',
+          'marker-4': 'canvas-hot' // Frecce calde/fredde sono trattate in modo speciale, potremmo non fissarle o mappare diversamente. Per ora mappiamo alla prima.
+      };
+
+      const markers = [
+          document.getElementById('marker-0'),
+          document.getElementById('marker-1'),
+          document.getElementById('marker-2'),
+          document.getElementById('marker-3'),
+          document.getElementById('marker-4')
+      ];
+
+      markers.forEach(marker => {
+          if (!marker) return;
+          marker.addEventListener('markerFound', (e) => { 
+              if (!isPinned) {
+                  document.getElementById('ui-controls').style.display = 'flex'; 
+                  activeCanvasId = markerCanvasMap[marker.id];
+              }
+          });
+          marker.addEventListener('markerLost', (e) => { 
+              // Se nessun altro marker è visibile (nel caso perdessimo questo), nascondi se non fissato
+              setTimeout(() => {
+                  let anyVisible = markers.some(m => m && m.object3D.visible);
+                  if (!isPinned && !anyVisible) {
+                      document.getElementById('ui-controls').style.display = 'none'; 
+                      activeCanvasId = null;
+                  } else if (!isPinned && anyVisible) {
+                      let visMarker = markers.find(m => m && m.object3D.visible);
+                      activeCanvasId = markerCanvasMap[visMarker.id];
+                  }
+              }, 100);
+          });
+      });
+
+      function pinToScreen() {
+          if (!activeCanvasId) return;
+          isPinned = true;
+          document.getElementById('ui-controls').style.display = 'none';
+          document.getElementById('hud-modal').style.display = 'flex';
+          
+          // Sposta il canvas nel modale
+          const canvas = document.getElementById(activeCanvasId);
+          if (canvas) {
+              document.getElementById('main-view-container').appendChild(canvas);
+              canvas.classList.add('canvas-pinned');
+          }
+      }
+
+      function unpinFromScreen() {
+          isPinned = false;
+          
+          // Nascondi modale e ripristina viste
+          document.getElementById('hud-modal').style.display = 'none';
+          
+          // Rimetti il canvas nel body
+          if (activeCanvasId) {
+              const canvas = document.getElementById(activeCanvasId);
+              if (canvas) {
+                  document.body.appendChild(canvas);
+                  canvas.classList.remove('canvas-pinned');
+              }
+          }
+          activeCanvasId = null;
+          
+          // Controlla se c'è un marker ancora visibile per mostrare il pulsante
+          let anyVisible = markers.some(m => m && m.object3D.visible);
+          if (anyVisible) {
+              document.getElementById('ui-controls').style.display = 'flex';
+              let visMarker = markers.find(m => m && m.object3D.visible);
+              activeCanvasId = markerCanvasMap[visMarker.id];
+          }
+      }
+
+      // ==========================================
+      // LETTURA CSV DINAMICA
+      // ==========================================
+      async function loadMarkersFromCSV() {
+          try {
+              const res = await fetch('./markers.csv');
+              if (!res.ok) throw new Error("File CSV non trovato");
+              const text = await res.text();
+              
+              const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+              lines.forEach(line => {
+                  const parts = line.split(';');
+                  if (parts.length === 2) {
+                      const val = parts[0].trim();
+                      const idType = parts[1].trim(); // ex: 'macchina', 'iaq', ecc.
+                      // Cerchiamo il marker corrispondente nel DOM (noi li abbiamo chiamati hardcoded marker-0, marker-1...)
+                      // Poiché il sistema prevedeva id fissi, se usiamo idType:
+                      let markerEl = null;
+                      if (idType === 'macchina') markerEl = document.getElementById('marker-0');
+                      else if (idType === 'iaq') markerEl = document.getElementById('marker-1');
+                      else if (idType === 'chart') markerEl = document.getElementById('marker-2');
+                      else if (idType === 'alarm') markerEl = document.getElementById('marker-3');
+                      else if (idType === 'frecce') markerEl = document.getElementById('marker-4');
+                      
+                      if (markerEl) {
+                          markerEl.setAttribute('value', val);
+                      }
+                  }
+              });
+              console.log("Marker configurati dinamicamente da CSV.");
+          } catch(e) {
+              console.warn("Nessun markers.csv trovato, continuiamo con i default.");
+          }
+      }
+      loadMarkersFromCSV();
+
       // Costanti di supporto
       const forceUpdate = (id) => {
           const plane = document.getElementById(id);
