@@ -261,8 +261,8 @@
 
           // Da notare che le API potrebbero tornare una struttura annidata che dobbiamo parsare (adattare dal backend).
           // In base al server, va modificato: qui è il nodo `.message.signals` l'array di variabili che desideriamo mappare.
-          const json = await risposta.json();
-          const dati = json.message.signals;
+          const dati = await risposta.json();
+          //const dati = json.message.signals;
 
           disegnaGrigliaDinamica(ctxIaq, dati, 'MONITORAGGIO IAQ - DEVICE 1', 'plane-iaq');
         } catch (errore) {
