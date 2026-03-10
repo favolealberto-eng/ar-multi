@@ -225,7 +225,10 @@
       // --- RECUPERO DATI DEVICE 0 ---
       if (ENDPOINT_MACCHINA !== "") {
         try {
-          // Fetch REST call: recupera array o oggetto dall'API specificata
+          // Fetch REST call: recupera l'array o l'oggetto dall'API.
+          // Inseriamo l'header "ngrok-skip-browser-warning" per bypassare
+          // la pagina HTML di avviso antispam che ngrok mostra nei piani di base.
+          // Questo previene l'errore di parsing causato da "Unexpected token < in JSON".
           const risposta = await fetch(ENDPOINT_MACCHINA, {
             headers: {
               "ngrok-skip-browser-warning": "69420"
@@ -252,6 +255,7 @@
       // --- RECUPERO DATI DEVICE 1 ---
       if (ENDPOINT_IAQ !== "") {
         try {
+          // Aggiungiamo l'header antispam per ngrok anche al Device 1
           const risposta = await fetch(ENDPOINT_IAQ, {
             headers: {
               "ngrok-skip-browser-warning": "69420"
@@ -259,10 +263,11 @@
           });
           if (!risposta.ok) throw new Error("Errore Server");
 
-          // Da notare che le API potrebbero tornare una struttura annidata che dobbiamo parsare (adattare dal backend).
-          // In base al server, va modificato: qui è il nodo `.message.signals` l'array di variabili che desideriamo mappare.
+          // Recuperiamo e parsiamo direttamente la risposta JSON dal backend.
+          // NOTA: Se la struttura dell'API cambia (ad esempio se i dati sono "incapsulati" in un livello),
+          // estrarre la radice corretta. (es. const dati = json.message.signals;)
           const dati = await risposta.json();
-          //const dati = json.message.signals;
+          // const arrayDati = json.message.signals; 
 
           disegnaGrigliaDinamica(ctxIaq, dati, 'MONITORAGGIO IAQ - DEVICE 1', 'plane-iaq');
         } catch (errore) {
