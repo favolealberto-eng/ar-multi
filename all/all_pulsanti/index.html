@@ -2,41 +2,59 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>EURIX - AR Minimal UI Dashboard</title>
+    <title>EURIX - AR Dashboard (Modale 2D HD)</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
+      /* PULSANTIERA MINIMALE IN BASSO A DESTRA */
       #ui-controls {
         position: fixed;
-        bottom: 30px;
-        right: 20px; /* Spostati nell'angolo in basso a destra */
+        bottom: 30px; right: 20px;
         z-index: 1000;
-        display: none; /* Appaiono solo quando si vede un marker */
-        flex-direction: column; /* Impilati in verticale */
-        gap: 15px;
+        display: none; /* Appare quando vede il marker */
+        flex-direction: column; gap: 15px;
       }
       .btn-minimal {
-        background: rgba(15, 23, 42, 0.6);
-        color: #ffffff;
+        background: rgba(15, 23, 42, 0.6); color: #ffffff;
         border: 2px solid rgba(255, 255, 255, 0.4);
-        width: 55px;
-        height: 55px;
-        border-radius: 50%; /* Pulsanti rotondi */
-        font-size: 24px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        cursor: pointer;
-        backdrop-filter: blur(5px); /* Effetto vetro sfocato */
-        transition: all 0.2s;
+        width: 55px; height: 55px; border-radius: 50%;
+        font-size: 24px; display: flex; justify-content: center; align-items: center;
+        cursor: pointer; backdrop-filter: blur(5px); transition: all 0.2s;
         box-shadow: 0 4px 15px rgba(0,0,0,0.3);
       }
-      .btn-minimal:active {
-        background: #3b82f6;
-        border-color: #ffffff;
-        transform: scale(0.9); /* Piccolo effetto pressione */
+      .btn-minimal:active { background: #3b82f6; border-color: #ffffff; transform: scale(0.9); }
+      .btn-pin { background: rgba(249, 115, 22, 0.8); } /* Arancione per il tasto fissa */
+
+      /* MODALE 2D PER IL FISSAGGIO A SCHERMO */
+      #hud-modal {
+        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.85); z-index: 999999;
+        flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+      }
+      .close-btn {
+        position: absolute; top: 20px; right: 20px;
+        background: #ef4444; color: white; border: none;
+        width: 50px; height: 50px; border-radius: 50%;
+        font-size: 24px; cursor: pointer; font-weight: bold;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      }
+      
+      /* Stili applicati dinamicamente ai Canvas quando entrano nella Modale */
+      .canvas-pinned {
+        display: block !important;
+        width: 90%; max-width: 900px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        border: 3px solid #3b82f6;
+      }
+      .canvas-pinned-small {
+        display: block !important;
+        width: 90%; max-width: 600px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        border: 3px solid #3b82f6;
       }
     </style>
   </head>
@@ -44,10 +62,14 @@
   <body style="margin: 0; overflow: hidden;">
 
     <div id="ui-controls">
-      <button id="btn-zoom-in" class="btn-minimal" title="Zoom In">➕</button>
-      <button id="btn-zoom-out" class="btn-minimal" title="Zoom Out">➖</button>
-      <button id="btn-pin" class="btn-minimal" title="Fissa a schermo">📌</button>
+      <button class="btn-minimal" onclick="zoomPanel(0.1)">➕</button>
+      <button class="btn-minimal" onclick="zoomPanel(-0.1)">➖</button>
+      <button class="btn-minimal btn-pin" onclick="freezePanel()">📌</button>
     </div>
+
+    <div id="hud-modal">
+      <button class="close-btn" onclick="closeHud()">✖</button>
+      </div>
 
     <canvas id="canvas-macchina" width="1600" height="900" style="display:none;"></canvas>
     <canvas id="canvas-iaq" width="1600" height="900" style="display:none;"></canvas>
@@ -107,7 +129,7 @@
         </a-entity>
       </a-marker>
 
-      <a-entity id="main-camera" camera look-controls="enabled: false" wasd-controls="enabled: false"></a-entity>
+      <a-entity camera look-controls="enabled: false" wasd-controls="enabled: false"></a-entity>
     </a-scene>
 
     <script>
@@ -117,18 +139,13 @@
       };
 
       // ==========================================
-      // UI CONTROLS E FISSAGGIO A SCHERMO OTTIMIZZATO
+      // GESTIONE UI, ZOOM E MODALE
       // ==========================================
       let activeMarker = null;
       let isPinned = false;
       let zoomLevels = {0: 1.0, 1: 1.0, 2: 1.0, 3: 1.0, 4: 1.0};
 
-      const uiControls = document.getElementById('ui-controls');
-      const btnZoomIn = document.getElementById('btn-zoom-in');
-      const btnZoomOut = document.getElementById('btn-zoom-out');
-      const btnPin = document.getElementById('btn-pin');
-      const mainCamera = document.getElementById('main-camera');
-
+      // Applica lo zoom al modello 3D
       function applyZoom(id) {
           const content = document.getElementById(`content-${id}`);
           if(content && !isPinned) {
@@ -137,14 +154,22 @@
           }
       }
 
-      // GESTIONE COMPARSA/SCOMPARSA MARKER
+      function zoomPanel(dir) {
+          if (activeMarker !== null && !isPinned) {
+              zoomLevels[activeMarker] += dir;
+              if(zoomLevels[activeMarker] < 0.4) zoomLevels[activeMarker] = 0.4;
+              applyZoom(activeMarker);
+          }
+      }
+
+      // LISTENER MARKER: Mostra/Nasconde la pulsantiera
       for(let i=0; i<=4; i++) {
           const marker = document.getElementById(`marker-${i}`);
           if(marker) {
               marker.addEventListener('markerFound', () => {
                   if (!isPinned) {
                       activeMarker = i;
-                      uiControls.style.display = 'flex'; 
+                      document.getElementById('ui-controls').style.display = 'flex';
                       applyZoom(i); 
                   }
               });
@@ -152,69 +177,65 @@
               marker.addEventListener('markerLost', () => {
                   if (!isPinned && activeMarker === i) {
                       activeMarker = null;
-                      uiControls.style.display = 'none'; 
+                      document.getElementById('ui-controls').style.display = 'none';
                   }
               });
           }
       }
 
-      // PULSANTI ZOOM
-      btnZoomIn.addEventListener('click', () => {
-          if (activeMarker !== null && !isPinned) {
-              zoomLevels[activeMarker] += 0.1; 
-              applyZoom(activeMarker);
-          }
-      });
-      btnZoomOut.addEventListener('click', () => {
-          if (activeMarker !== null && !isPinned) {
-              zoomLevels[activeMarker] = Math.max(0.3, zoomLevels[activeMarker] - 0.1); 
-              applyZoom(activeMarker);
-          }
-      });
-
-      // PULSANTE FISSA / SGANICA
-      btnPin.addEventListener('click', () => {
+      // APERTURA DELLA MODALE 2D
+      function freezePanel() {
           if (activeMarker === null) return;
+          isPinned = true;
           
-          const content = document.getElementById(`content-${activeMarker}`);
-          const marker = document.getElementById(`marker-${activeMarker}`);
-
-          if (!isPinned) {
-              // AZIONE: FISSA A SCHERMO
-              isPinned = true;
-              mainCamera.appendChild(content);
-              
-              // Posizionamento calibrato: vicino alla telecamera e rimpicciolito
-              content.setAttribute('position', '0 0 -4'); 
-              content.setAttribute('rotation', '0 0 0');  
-              content.setAttribute('scale', '0.45 0.45 0.45');
-              
-              btnPin.innerHTML = '❌'; // Cambia icona
-              btnPin.style.backgroundColor = 'rgba(239, 68, 68, 0.8)'; // Diventa rosso
-              btnZoomIn.style.display = 'none'; // Nascondi zoom
-              btnZoomOut.style.display = 'none';
-          } else {
-              // AZIONE: SGANCIA DALLO SCHERMO
-              marker.appendChild(content);
-              
-              // Ripristino coordinate originali
-              content.setAttribute('position', '0 0 0');
-              content.setAttribute('rotation', '-75 0 0'); 
-              applyZoom(activeMarker); // Ricarica lo zoom salvato
-              
-              isPinned = false;
-              btnPin.innerHTML = '📌';
-              btnPin.style.backgroundColor = 'rgba(15, 23, 42, 0.6)'; // Torna blu/grigio
-              btnZoomIn.style.display = 'flex';
-              btnZoomOut.style.display = 'flex';
-              
-              // Se intanto il marker fisico è uscito dall'inquadratura, nascondi tutto
-              if (!marker.object3D.visible) {
-                  activeMarker = null;
-                  uiControls.style.display = 'none';
-              }
+          // Nascondi pulsantiera AR
+          document.getElementById('ui-controls').style.display = 'none';
+          
+          const modal = document.getElementById('hud-modal');
+          modal.style.display = 'flex';
+          
+          // Identifica i Canvas da spostare
+          let canvasList = [];
+          if (activeMarker === 0) canvasList.push('canvas-macchina');
+          else if (activeMarker === 1) canvasList.push('canvas-iaq');
+          else if (activeMarker === 2) canvasList.push('canvas-chart');
+          else if (activeMarker === 3) canvasList.push('canvas-alarm');
+          else if (activeMarker === 4) {
+              canvasList.push('canvas-hot');
+              canvasList.push('canvas-cold');
           }
-      });
+
+          // Sposta i Canvas nella Modale e applica la classe CSS per farli vedere
+          canvasList.forEach(id => {
+              let cvs = document.getElementById(id);
+              modal.appendChild(cvs);
+              cvs.classList.add(activeMarker === 4 ? 'canvas-pinned-small' : 'canvas-pinned');
+          });
+      }
+
+      // CHIUSURA DELLA MODALE
+      function closeHud() {
+          isPinned = false;
+          const modal = document.getElementById('hud-modal');
+          modal.style.display = 'none';
+          
+          // Rimetti tutti i canvas nascosti nel Body
+          const allCanvases = ['canvas-macchina', 'canvas-iaq', 'canvas-chart', 'canvas-alarm', 'canvas-hot', 'canvas-cold'];
+          allCanvases.forEach(id => {
+              let cvs = document.getElementById(id);
+              document.body.appendChild(cvs);
+              cvs.classList.remove('canvas-pinned');
+              cvs.classList.remove('canvas-pinned-small');
+          });
+          
+          // Controlla se il marker è ancora sotto la telecamera per riaccendere i pulsanti
+          const marker = document.getElementById(`marker-${activeMarker}`);
+          if (marker && marker.object3D.visible) {
+              document.getElementById('ui-controls').style.display = 'flex';
+          } else {
+              activeMarker = null;
+          }
+      }
 
       // ==========================================
       // LOGICA DATI E GRAFICA (INVRIATA)
