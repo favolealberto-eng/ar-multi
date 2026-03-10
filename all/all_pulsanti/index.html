@@ -13,7 +13,7 @@
         position: fixed;
         bottom: 30px; right: 20px;
         z-index: 1000;
-        display: none; /* Appare quando vede il marker */
+        display: none; 
         flex-direction: column; gap: 15px;
       }
       .btn-minimal {
@@ -25,7 +25,7 @@
         box-shadow: 0 4px 15px rgba(0,0,0,0.3);
       }
       .btn-minimal:active { background: #3b82f6; border-color: #ffffff; transform: scale(0.9); }
-      .btn-pin { background: rgba(249, 115, 22, 0.8); } /* Arancione per il tasto fissa */
+      .btn-pin { background: rgba(249, 115, 22, 0.8); }
 
       /* MODALE 2D PER IL FISSAGGIO A SCHERMO */
       #hud-modal {
@@ -41,17 +41,21 @@
         box-shadow: 0 4px 10px rgba(0,0,0,0.5);
       }
       
-      /* Stili applicati dinamicamente ai Canvas quando entrano nella Modale */
+      /* STILI CORRETTI CON !important PER DOMARE CHART.JS */
       .canvas-pinned {
         display: block !important;
-        width: 90%; max-width: 900px;
+        width: 90% !important; /* Forza la larghezza a stare nello schermo */
+        max-width: 900px !important;
+        height: auto !important; /* Forza l'altezza a scalare proporzionalmente */
         border-radius: 15px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.8);
         border: 3px solid #3b82f6;
       }
       .canvas-pinned-small {
         display: block !important;
-        width: 90%; max-width: 600px;
+        width: 90% !important;
+        max-width: 600px !important;
+        height: auto !important;
         border-radius: 15px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.8);
         border: 3px solid #3b82f6;
@@ -145,7 +149,6 @@
       let isPinned = false;
       let zoomLevels = {0: 1.0, 1: 1.0, 2: 1.0, 3: 1.0, 4: 1.0};
 
-      // Applica lo zoom al modello 3D
       function applyZoom(id) {
           const content = document.getElementById(`content-${id}`);
           if(content && !isPinned) {
@@ -162,7 +165,6 @@
           }
       }
 
-      // LISTENER MARKER: Mostra/Nasconde la pulsantiera
       for(let i=0; i<=4; i++) {
           const marker = document.getElementById(`marker-${i}`);
           if(marker) {
@@ -183,18 +185,15 @@
           }
       }
 
-      // APERTURA DELLA MODALE 2D
       function freezePanel() {
           if (activeMarker === null) return;
           isPinned = true;
           
-          // Nascondi pulsantiera AR
           document.getElementById('ui-controls').style.display = 'none';
           
           const modal = document.getElementById('hud-modal');
           modal.style.display = 'flex';
           
-          // Identifica i Canvas da spostare
           let canvasList = [];
           if (activeMarker === 0) canvasList.push('canvas-macchina');
           else if (activeMarker === 1) canvasList.push('canvas-iaq');
@@ -205,7 +204,6 @@
               canvasList.push('canvas-cold');
           }
 
-          // Sposta i Canvas nella Modale e applica la classe CSS per farli vedere
           canvasList.forEach(id => {
               let cvs = document.getElementById(id);
               modal.appendChild(cvs);
@@ -213,13 +211,11 @@
           });
       }
 
-      // CHIUSURA DELLA MODALE
       function closeHud() {
           isPinned = false;
           const modal = document.getElementById('hud-modal');
           modal.style.display = 'none';
           
-          // Rimetti tutti i canvas nascosti nel Body
           const allCanvases = ['canvas-macchina', 'canvas-iaq', 'canvas-chart', 'canvas-alarm', 'canvas-hot', 'canvas-cold'];
           allCanvases.forEach(id => {
               let cvs = document.getElementById(id);
@@ -228,7 +224,6 @@
               cvs.classList.remove('canvas-pinned-small');
           });
           
-          // Controlla se il marker è ancora sotto la telecamera per riaccendere i pulsanti
           const marker = document.getElementById(`marker-${activeMarker}`);
           if (marker && marker.object3D.visible) {
               document.getElementById('ui-controls').style.display = 'flex';
@@ -238,7 +233,7 @@
       }
 
       // ==========================================
-      // LOGICA DATI E GRAFICA (INVRIATA)
+      // LOGICA DATI E GRAFICA
       // ==========================================
       const ctxMacchina = document.getElementById('canvas-macchina').getContext('2d');
       const ctxIaq = document.getElementById('canvas-iaq').getContext('2d');
