@@ -1,155 +1,230 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>EURIX - AR Dashboard Dinamica (Endpoint URL)</title>
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-  </head>
-  
-  <body style="margin: 0; overflow: hidden;">
+<html lang="it">
 
-    <canvas id="canvas-macchina" width="1600" height="900" style="display:none;"></canvas>
-    <canvas id="canvas-iaq" width="1600" height="900" style="display:none;"></canvas>
+<head>
+  <meta charset="utf-8">
+  <title>EURIX - AR Dashboard Dinamica (Endpoint URL)</title>
+  <!-- Importazione A-Frame: framework basato su Three.js per la creazione di scene 3D e VR/AR nel browser -->
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <!-- Importazione AR.js: estensione per A-Frame che abilita la Realtà Aumentata (marker-based, nel nostro caso barcode) -->
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+</head>
 
-    <a-scene embedded 
-             arjs="sourceType: webcam; detectionMode: mono_and_matrix; matrixCodeType: 3x3; debugUIEnabled: false;"
-             renderer="antialias: true;">
-      
-      <a-marker type="barcode" value="0" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
-        <a-entity rotation="-75 0 0">
-          <a-plane id="plane-macchina" position="0 1.5 0" width="4.8" height="2.7" material="src: #canvas-macchina; shader: flat;"></a-plane>
-        </a-entity>
-      </a-marker>
+<body style="margin: 0; overflow: hidden;">
 
-      <a-marker type="barcode" value="1" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
-        <a-entity rotation="-75 0 0">
-          <a-plane id="plane-iaq" position="0 1.5 0" width="4.8" height="2.7" material="src: #canvas-iaq; shader: flat;"></a-plane>
-        </a-entity>
-      </a-marker>
+  <!-- 
+    Canvas HTML5 (nascosti tramite CSS display:none) utilizzati per disegnare l'interfaccia 2D dinamicamente.
+    Questa tecnica si usa perché A-Frame non ha un sistema nativo flessibile per la UI 2D complessa.
+    Il risultato 2D disegnato in questi canvas viene poi associato come "texture" dei piani 3D (a-plane).
+  -->
+  <canvas id="canvas-macchina" width="1600" height="900" style="display:none;"></canvas>
+  <canvas id="canvas-iaq" width="1600" height="900" style="display:none;"></canvas>
 
-      <a-entity camera look-controls="enabled: false" wasd-controls="enabled: false"></a-entity>
-    </a-scene>
-<script>
-      // ==========================================
-      // 1. INSERISCI QUI GLI URL DEGLI ENDPOINT
-      // ==========================================
-      const ENDPOINT_MACCHINA = "http://192.168.37.201:1880/api/device/0"; // Esempio: "http://192.168.1.xxx:8080/api/device/0"
-      const ENDPOINT_IAQ = "http://192.168.37.201:1880/api/device/1";      // Esempio: "http://192.168.1.xxx:8080/api/device/1"
+  <!-- 
+    <a-scene>: crea la scena 3D principale.
+    - embedded: rimuove lo stile a schermo intero nativo di A-Frame per integrarsi meglio con la pagina.
+    - arjs: configurazione della libreria AR.js.
+        sourceType=webcam: accede alla fotocamera predefinita del dispositivo.
+        detectionMode=mono_and_matrix: cerca marker pattern normali e marker fisici a codice a barre (matrix).
+        matrixCodeType=3x3: definisce il formato di codice a barre riconosciuto.
+  -->
+  <a-scene embedded
+    arjs="sourceType: webcam; detectionMode: mono_and_matrix; matrixCodeType: 3x3; debugUIEnabled: false;"
+    renderer="antialias: true;">
 
-      const ctxMacchina = document.getElementById('canvas-macchina').getContext('2d');
-      const ctxIaq = document.getElementById('canvas-iaq').getContext('2d');
+    <!-- 
+      MARKER 0: BARCODE "0" (Dedicato alla Centrale Termica) 
+      Quando la fotocamera vede il marker Barcode 0, posiziona l'elemento figlio (a-entity e a-plane) su di esso.
+    -->
+    <a-marker type="barcode" value="0" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
+      <a-entity rotation="-75 0 0">
+        <!-- a-plane agisce da 'schermo' virtuale nel mondo reale 3D.
+             L'attributo material.src=#canvas-macchina applica il contenuto bidimensionale disegnato via JS.
+             Lo shader="flat" previene la necessità di posizionare luci nella scena, i colori non vengono influenzati dalle ombre. -->
+        <a-plane id="plane-macchina" position="0 1.5 0" width="4.8" height="2.7"
+          material="src: #canvas-macchina; shader: flat;"></a-plane>
+      </a-entity>
+    </a-marker>
 
-      // ==========================================
-      // 2. FUNZIONE DI EMERGENZA (Pannello di Attesa)
-      // ==========================================
-      function disegnaPannelloAttesa(ctx, titolo, planeId) {
-          ctx.fillStyle = '#0f172a'; // Sfondo blu scuro
-          ctx.fillRect(0, 0, 1600, 900);
+    <!-- 
+      MARKER 1: BARCODE "1" (Dedicato alla vista Qualità dell'Aria / IAQ) 
+      Simile al precedente ma appare quando rileva il barcode col valore "1".
+    -->
+    <a-marker type="barcode" value="1" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
+      <a-entity rotation="-75 0 0">
+        <a-plane id="plane-iaq" position="0 1.5 0" width="4.8" height="2.7"
+          material="src: #canvas-iaq; shader: flat;"></a-plane>
+      </a-entity>
+    </a-marker>
 
-          ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 70px sans-serif';
-          ctx.fillText(titolo, 80, 120);
+    <!-- Fotocamera dell'utente. look-controls e wasd-controls sono "false" in AR, 
+         il punto di vista è guidato esclusivamente dallo spostamento fisico del dispositivo / webcam in base al marker. -->
+    <a-entity camera look-controls="enabled: false" wasd-controls="enabled: false"></a-entity>
+  </a-scene>
 
-          // Testo di avviso giallo
-          ctx.fillStyle = '#facc15'; 
-          ctx.font = 'italic 50px sans-serif';
-          ctx.fillText('Nessun dato in arrivo. In attesa del Server...', 80, 450);
-          ctx.fillText('Verificare che l\'URL dell\'Endpoint sia inserito nel codice.', 80, 530);
+  <script>
+    // ==========================================
+    // 1. CONFIGURAZIONE DEGLI ENDPOINT API
+    // ==========================================
+    // URL dei servizi REST (es. Node-RED o altro backend backend) da cui l'applicazione recupera i dati.
+    // È possibile modificarli prima dell'esecuzione se la rete cambia.
+    const ENDPOINT_MACCHINA = "https://camron-nonspecialized-comply.ngrok-free.dev/api/device/0"; // Esempio per device 0
+    const ENDPOINT_IAQ = "https://camron-nonspecialized-comply.ngrok-free.dev/api/device/1";      // Esempio per device 1
 
-          const plane = document.getElementById(planeId);
-          if(plane && plane.getObject3D('mesh')) {
-              plane.getObject3D('mesh').material.map.needsUpdate = true;
-          }
+    // Salviamo i contesti grafici (2d rendering context) degli elementi canvas creati nell'HTML per disegnarci testo e rettangoli in seguito
+    const ctxMacchina = document.getElementById('canvas-macchina').getContext('2d');
+    const ctxIaq = document.getElementById('canvas-iaq').getContext('2d');
+
+    // ==========================================
+    // 2. FUNZIONE DI EMERGENZA (Pannello di Attesa / Errore)
+    // ==========================================
+    // Questa funzione disegna un'interfaccia di avviso sui canvas in caso di errori di HTTP request (Endpoint irraggiungibile) 
+    // o se non c'è ancora nessun dato disponibile all'avvio.
+    function disegnaPannelloAttesa(ctx, titolo, planeId) {
+      // Pulizia canvas: disegna uno sfondo (un rettangolo grande quanto tutto lo schermo del canvas)
+      ctx.fillStyle = '#0f172a'; // Colore blu scuro
+      ctx.fillRect(0, 0, 1600, 900);
+
+      // Disegna il titolo del pannello in alto a sinistra
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 70px sans-serif';
+      ctx.fillText(titolo, 80, 120);
+
+      // Testo di debug in colore giallo per farsi notare (in caso di latenza rete o url errati)
+      ctx.fillStyle = '#facc15';
+      ctx.font = 'italic 50px sans-serif';
+      ctx.fillText('Nessun dato in arrivo. In attesa del Server...', 80, 450);
+      ctx.fillText('Verificare che l\'URL dell\'Endpoint sia inserito nel codice.', 80, 530);
+
+      // IMPORTANTE VITALMENTE: Quando un canvas 2D viene aggiornato via JS, A-Frame/Three.js
+      // che sta usando tale canvas come texture 3D non sanno che questo è avvenuto in automatico.
+      // Bisogna esplicitamente forzarli a ri-renderizzare la texture comunicando che la "map" ha bisogno di un aggiornamento.
+      const plane = document.getElementById(planeId);
+      if (plane && plane.getObject3D('mesh')) {
+        plane.getObject3D('mesh').material.map.needsUpdate = true;
+      }
+    }
+
+    // ==========================================
+    // 3. FUNZIONE GENERATRICE DELLA GRIGLIA DINAMICA
+    // ==========================================
+    // Disegna una "Dashboard" a quadratini (card) 4x3 contenente fino a 12 sensori/variabili (ricavati dalle API).
+    function disegnaGrigliaDinamica(ctx, datiArray, titoloPannello, planeId) {
+      // Pulisce e ridipinge lo sfondo (blu scuro) ad ogni aggiornamento o "frame"
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, 1600, 900);
+
+      // Disegna il titolo del pannello specificato come paramentro (H1 equivalente)
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 70px sans-serif';
+      ctx.fillText(titoloPannello, 80, 120);
+
+      // Variabili di layout: Margini di partenza (startX, startY), Dimensioni "Card" (boxW, boxH), e spaziature (gapX, gapY) all'interno del grid
+      const startX = 80, startY = 180, boxW = 330, boxH = 200, gapX = 40, gapY = 40;
+
+      // Imposta limite fisico di elementi visualizzati: per evitare overlappamenti, si visualizzano al massimo 12 segnali (4 colonne x 3 righe)
+      const maxElements = Math.min(datiArray.length, 12);
+
+      // Cicla sull'array di dati (formato solitamente: [{name: '...', value: '...'}, ...])
+      for (let i = 0; i < maxElements; i++) {
+        const item = datiArray[i];
+
+        // Elaborazione stringa 'name': rimuove underscore per rendere la stringa più leggibile 
+        // ed effettua un cropping (se troppo lungo lo taglia aggiungendo i puntini sospensivi) per non uscire dal box
+        let nomeVariabile = item.name || "N/D";
+        nomeVariabile = nomeVariabile.replace(/_/g, ' ');
+        if (nomeVariabile.length > 18) nomeVariabile = nomeVariabile.substring(0, 16) + '...';
+
+        // Formattazione del valore: riduce a 1 singola cifra decimale per leggibilità in cruscotto (es: 23.456 => 23.5)
+        let valore = item.value;
+        if (typeof valore === 'number') valore = valore.toFixed(1);
+
+        // Calcolo logico riga-colonna della griglia
+        const colonna = i % 4; // Colonna corrente (0 a 3)
+        const riga = Math.floor(i / 4); // Riga corrente (0 a 2)
+        // Calcolo coordinate fisiche sul canvas 2D
+        const x = startX + colonna * (boxW + gapX);
+        const y = startY + riga * (boxH + gapY);
+
+        // 1) Disenare il box / la formella (Colore azzurro pastello-scuro, bordi arrotondati)
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        // x, y di partenza, width, height, raggio dell'angolo arrotondato
+        ctx.roundRect(x, y, boxW, boxH, 20);
+        ctx.fill();
+
+        // 2) Stampa l'etichetta/titolo della singola variabile
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '24px sans-serif';
+        ctx.fillText(nomeVariabile, x + 25, y + 50);
+
+        // 3) Stampa il valore vero e proprio con un font monospace ed in grande
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 70px monospace';
+        ctx.fillText(valore, x + 25, y + 140);
       }
 
-      // ==========================================
-      // 3. FUNZIONE GENERATRICE DELLA GRIGLIA DINAMICA
-      // ==========================================
-      function disegnaGrigliaDinamica(ctx, datiArray, titoloPannello, planeId) {
-          ctx.fillStyle = '#0f172a';
-          ctx.fillRect(0, 0, 1600, 900);
+      // Segnala al componente Three.js collegato allo specifico <a-plane> di aggiornare il buffer video per proiettare il cambiamento
+      const plane = document.getElementById(planeId);
+      if (plane && plane.getObject3D('mesh')) {
+        plane.getObject3D('mesh').material.map.needsUpdate = true;
+      }
+    }
 
-          ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 70px sans-serif';
-          ctx.fillText(titoloPannello, 80, 120);
+    // ==========================================
+    // 4. LOOP DI RECUPERO DATI E AGGIORNAMENTO 
+    // ==========================================
+    // Interroga costantemente il backend per avere dei dati sempre freschi (Polling).
+    async function scaricaDatiDaEndpoint() {
 
-          const startX = 80, startY = 180, boxW = 330, boxH = 200, gapX = 40, gapY = 40;
-          const maxElements = Math.min(datiArray.length, 12);
+      // --- RECUPERO DATI DEVICE 0 ---
+      if (ENDPOINT_MACCHINA !== "") {
+        try {
+          // Fetch REST call: recupera array o oggetto dall'API specificata
+          const risposta = await fetch(ENDPOINT_MACCHINA);
+          // Verifica di avere 200 OK
+          if (!risposta.ok) throw new Error("Errore Server");
+          // Recupero del Payload 
+          const dati = await risposta.json();
 
-          for (let i = 0; i < maxElements; i++) {
-              const item = datiArray[i];
-              let nomeVariabile = item.name || "N/D";
-              nomeVariabile = nomeVariabile.replace(/_/g, ' '); 
-              if(nomeVariabile.length > 18) nomeVariabile = nomeVariabile.substring(0, 16) + '...';
-
-              let valore = item.value;
-              if (typeof valore === 'number') valore = valore.toFixed(1);
-
-              const colonna = i % 4; 
-              const riga = Math.floor(i / 4); 
-              const x = startX + colonna * (boxW + gapX);
-              const y = startY + riga * (boxH + gapY);
-
-              ctx.fillStyle = '#1e293b';
-              ctx.beginPath();
-              ctx.roundRect(x, y, boxW, boxH, 20);
-              ctx.fill();
-
-              ctx.fillStyle = '#94a3b8';
-              ctx.font = '24px sans-serif';
-              ctx.fillText(nomeVariabile, x + 25, y + 50);
-
-              ctx.fillStyle = '#ffffff';
-              ctx.font = 'bold 70px monospace';
-              ctx.fillText(valore, x + 25, y + 140);
-          }
-
-          const plane = document.getElementById(planeId);
-          if(plane && plane.getObject3D('mesh')) {
-              plane.getObject3D('mesh').material.map.needsUpdate = true;
-          }
+          // In caso positivo, chiama la funzione preposta a disegnare la tabella con il JSON ricevuto
+          disegnaGrigliaDinamica(ctxMacchina, dati, 'CENTRALE TERMICA - DEVICE 0', 'plane-macchina');
+        } catch (errore) {
+          // Fallback: se la porta REST è chiusa, off, non risponde, ecc.. viene intercettato l'errore
+          disegnaPannelloAttesa(ctxMacchina, 'CENTRALE TERMICA - DEVICE 0 (Errore di Rete)', 'plane-macchina');
+        }
+      } else {
+        // Se la costante URL a inizio file è tenuta volutamente vuota, indica lo status sul display senza bloccare o sollevare errori rossi in console
+        disegnaPannelloAttesa(ctxMacchina, 'CENTRALE TERMICA - DEVICE 0', 'plane-macchina');
       }
 
-      // ==========================================
-      // 4. IL MOTORE DI RETE: INTERROGA GLI ENDPOINT
-      // ==========================================
-      async function scaricaDatiDaEndpoint() {
-          
-          // --- DEVICE 0 ---
-          if (ENDPOINT_MACCHINA !== "") {
-              try {
-                  const risposta = await fetch(ENDPOINT_MACCHINA);
-                  if(!risposta.ok) throw new Error("Errore Server");
-                  const dati = await risposta.json();
-                  disegnaGrigliaDinamica(ctxMacchina, dati, 'CENTRALE TERMICA - DEVICE 0', 'plane-macchina');
-              } catch (errore) {
-                  disegnaPannelloAttesa(ctxMacchina, 'CENTRALE TERMICA - DEVICE 0 (Errore di Rete)', 'plane-macchina');
-              }
-          } else {
-              // Se l'URL è vuoto (""), disegna il pannello di attesa invece di lasciare tutto invisibile
-              disegnaPannelloAttesa(ctxMacchina, 'CENTRALE TERMICA - DEVICE 0', 'plane-macchina');
-          }
+      // --- RECUPERO DATI DEVICE 1 ---
+      if (ENDPOINT_IAQ !== "") {
+        try {
+          const risposta = await fetch(ENDPOINT_IAQ);
+          if (!risposta.ok) throw new Error("Errore Server");
 
-          // --- DEVICE 1 ---
-          if (ENDPOINT_IAQ !== "") {
-              try {
-                  const risposta = await fetch(ENDPOINT_IAQ);
-                  if(!risposta.ok) throw new Error("Errore Server");
-                  const json = await risposta.json();
-                  const dati = json.message.signals;
-                  disegnaGrigliaDinamica(ctxIaq, dati, 'MONITORAGGIO IAQ - DEVICE 1', 'plane-iaq');
-              } catch (errore) {
-                  disegnaPannelloAttesa(ctxIaq, 'MONITORAGGIO IAQ - DEVICE 1 (Errore di Rete)', 'plane-iaq');
-              }
-          } else {
-              disegnaPannelloAttesa(ctxIaq, 'MONITORAGGIO IAQ - DEVICE 1', 'plane-iaq');
-          }
+          // Da notare che le API potrebbero tornare una struttura annidata che dobbiamo parsare (adattare dal backend).
+          // In base al server, va modificato: qui è il nodo `.message.signals` l'array di variabili che desideriamo mappare.
+          const json = await risposta.json();
+          const dati = json.message.signals;
+
+          disegnaGrigliaDinamica(ctxIaq, dati, 'MONITORAGGIO IAQ - DEVICE 1', 'plane-iaq');
+        } catch (errore) {
+          disegnaPannelloAttesa(ctxIaq, 'MONITORAGGIO IAQ - DEVICE 1 (Errore di Rete)', 'plane-iaq');
+        }
+      } else {
+        disegnaPannelloAttesa(ctxIaq, 'MONITORAGGIO IAQ - DEVICE 1', 'plane-iaq');
       }
+    }
 
-      setInterval(scaricaDatiDaEndpoint, 3000);
-      scaricaDatiDaEndpoint();
+    // Schedulatore: esegue la funzione scaricaDatiDaEndpoint ogni 3000 millisecondi (3 secondi)
+    setInterval(scaricaDatiDaEndpoint, 3000);
 
-    </script>
-  </body>
+    // La chiamiamo anche immediatamente al caricamento (altrimenti dovremmo aspettare 3 sec fermi al primo giro)
+    scaricaDatiDaEndpoint();
+
+  </script>
+</body>
+
 </html>
