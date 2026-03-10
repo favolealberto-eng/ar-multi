@@ -76,29 +76,74 @@
     const ctxIaq = document.getElementById('canvas-iaq').getContext('2d');
 
     // ==========================================
-    // 2. FUNZIONE DI EMERGENZA (Pannello di Attesa / Errore)
+    // 2. FUNZIONI DI EMERGENZA (Attesa ed Errore)
     // ==========================================
-    // Questa funzione disegna un'interfaccia di avviso sui canvas in caso di errori di HTTP request (Endpoint irraggiungibile) 
-    // o se non c'è ancora nessun dato disponibile all'avvio.
-    function disegnaPannelloAttesa(ctx, titolo, planeId) {
-      // Pulizia canvas: disegna uno sfondo (un rettangolo grande quanto tutto lo schermo del canvas)
-      ctx.fillStyle = '#0f172a'; // Colore blu scuro
-      ctx.fillRect(0, 0, 1600, 900);
 
-      // Disegna il titolo del pannello in alto a sinistra
+    // Mostra un pannello blu di caricamento/attesa (usato al primo avvio)
+    function disegnaPannelloAttesa(ctx, titolo, planeId) {
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, 1600, 900);
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 70px sans-serif';
       ctx.fillText(titolo, 80, 120);
 
-      // Testo di debug in colore giallo per farsi notare (in caso di latenza rete o url errati)
       ctx.fillStyle = '#facc15';
       ctx.font = 'italic 50px sans-serif';
       ctx.fillText('Nessun dato in arrivo. In attesa del Server...', 80, 450);
       ctx.fillText('Verificare che l\'URL dell\'Endpoint sia inserito nel codice.', 80, 530);
 
-      // IMPORTANTE VITALMENTE: Quando un canvas 2D viene aggiornato via JS, A-Frame/Three.js
-      // che sta usando tale canvas come texture 3D non sanno che questo è avvenuto in automatico.
-      // Bisogna esplicitamente forzarli a ri-renderizzare la texture comunicando che la "map" ha bisogno di un aggiornamento.
+      const plane = document.getElementById(planeId);
+      if (plane && plane.getObject3D('mesh')) {
+        plane.getObject3D('mesh').material.map.needsUpdate = true;
+      }
+    }
+
+    // Mostra un pannello rosso con il LOG DETTAGLIATO dell'errore (utile per debug remoto su visore/cellulare)
+    function disegnaPannelloErrore(ctx, titolo, errore, planeId) {
+      // Sfondo rosso scuro/nero per indicare errore critico
+      ctx.fillStyle = '#450a0a';
+      ctx.fillRect(0, 0, 1600, 900);
+
+      // Titolo del pannello
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 70px sans-serif';
+      ctx.fillText(titolo, 80, 120);
+
+      // Etichetta specifica per il Debug
+      ctx.fillStyle = '#f87171';
+      ctx.font = 'bold 40px monospace';
+      ctx.fillText('>>> DEBUG LOG ERROR:', 80, 250);
+
+      // Messaggio di errore tecnico
+      ctx.fillStyle = '#fecaca';
+      ctx.font = '35px monospace';
+
+      const msg = String(errore);
+      const maxWidth = 1400;
+      let yStart = 320;
+
+      // Funzione di wrapping per non far uscire il testo lungo dai bordi del canvas
+      function wrapText(text, x, startY, lineHeight, maxWidth) {
+        const words = text.split(' ');
+        let line = '';
+        let currentY = startY;
+        for (let n = 0; n < words.length; n++) {
+          let testLine = line + words[n] + ' ';
+          let metrics = ctx.measureText(testLine);
+          if (metrics.width > maxWidth && n > 0) {
+            ctx.fillText(line, x, currentY);
+            line = words[n] + ' ';
+            currentY += lineHeight;
+          } else {
+            line = testLine;
+          }
+        }
+        ctx.fillText(line, x, currentY);
+      }
+
+      wrapText(msg, 80, yStart, 50, maxWidth);
+
+      // Sincronizzazione texture AR
       const plane = document.getElementById(planeId);
       if (plane && plane.getObject3D('mesh')) {
         plane.getObject3D('mesh').material.map.needsUpdate = true;
@@ -190,8 +235,9 @@
           // In caso positivo, chiama la funzione preposta a disegnare la tabella con il JSON ricevuto
           disegnaGrigliaDinamica(ctxMacchina, dati, 'CENTRALE TERMICA - DEVICE 0', 'plane-macchina');
         } catch (errore) {
-          // Fallback: se la porta REST è chiusa, off, non risponde, ecc.. viene intercettato l'errore
-          disegnaPannelloAttesa(ctxMacchina, 'CENTRALE TERMICA - DEVICE 0 (Errore di Rete)', 'plane-macchina');
+          console.error("Errore Device 0:", errore);
+          // Visualizza il log dell'errore direttamente sul pannello virtuale per capire il motivo del fallimento
+          disegnaPannelloErrore(ctxMacchina, 'CENTRALE TERMICA - DEVICE 0', errore, 'plane-macchina');
         }
       } else {
         // Se la costante URL a inizio file è tenuta volutamente vuota, indica lo status sul display senza bloccare o sollevare errori rossi in console
@@ -211,7 +257,9 @@
 
           disegnaGrigliaDinamica(ctxIaq, dati, 'MONITORAGGIO IAQ - DEVICE 1', 'plane-iaq');
         } catch (errore) {
-          disegnaPannelloAttesa(ctxIaq, 'MONITORAGGIO IAQ - DEVICE 1 (Errore di Rete)', 'plane-iaq');
+          console.error("Errore Device 1:", errore);
+          // Visualizza il log dell'errore direttamente sul pannello virtuale per capire il motivo del fallimento
+          disegnaPannelloErrore(ctxIaq, 'MONITORAGGIO IAQ - DEVICE 1', errore, 'plane-iaq');
         }
       } else {
         disegnaPannelloAttesa(ctxIaq, 'MONITORAGGIO IAQ - DEVICE 1', 'plane-iaq');
