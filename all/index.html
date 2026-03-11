@@ -72,8 +72,8 @@
     <canvas id="canvas-cold" width="1024" height="256" style="display:none;"></canvas>
 
     <a-scene embedded 
-             arjs="sourceType: webcam; detectionMode: mono_and_matrix; matrixCodeType: 3x3; debugUIEnabled: false;"
-             renderer="antialias: true;">
+             arjs="sourceType: webcam; sourceWidth: 1280; sourceHeight: 720; displayWidth: 1280; displayHeight: 720; detectionMode: mono_and_matrix; matrixCodeType: 3x3; debugUIEnabled: false;"
+             renderer="antialias: true; logarithmicDepthBuffer: true; alpha: true;">
       
       <a-entity id="marker-container"></a-entity>
       <a-entity camera look-controls="enabled: false" wasd-controls="enabled: false"></a-entity>
@@ -250,9 +250,9 @@
                           // (lo sfarfallio della sagoma tra i frame della telecamera)
                           markerEl.setAttribute('emitevents', 'true');
                           markerEl.setAttribute('smooth', 'true');
-                          markerEl.setAttribute('smoothCount', '10');
-                          markerEl.setAttribute('smoothTolerance', '0.05');
-                          markerEl.setAttribute('smoothThreshold', '2');
+                          markerEl.setAttribute('smoothCount', '7');
+                          markerEl.setAttribute('smoothTolerance', '0.02');
+                          markerEl.setAttribute('smoothThreshold', '5');
                           markerEl.dataset.type = type; // Metadata HTML5 utile per ripescarlo dopo
                           
                           // Inietto all'interno gli a-plane definiti nei template su in cima 

@@ -1,142 +1,144 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <title>EURIX - Pannello Potenza 16:9 (Canvas UI)</title>
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  </head>
-  
-  <body style="margin: 0; overflow: hidden;">
 
-    <canvas id="ui-canvas" width="1600" height="900" style="display:none;"></canvas>
+<head>
+  <meta charset="utf-8">
+  <title>EURIX - Pannello Potenza 16:9 (Canvas UI)</title>
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
 
-    <a-scene embedded 
-             arjs="sourceType: webcam; detectionMode: mono_and_matrix; matrixCodeType: 3x3; debugUIEnabled: false;"
-             renderer="antialias: true;">
-      
-      <a-marker type="barcode" value="3" smooth="true" smoothCount="10" smoothTolerance="0.05" smoothThreshold="2">
-        
-        <a-entity rotation="-75 0 0">
-          
-          <a-plane position="0 1.5 0" width="3.2" height="1.8" material="src: #ui-canvas; shader: flat;"></a-plane>
+<body style="margin: 0; overflow: hidden;">
 
-        </a-entity>
+  <canvas id="ui-canvas" width="1600" height="900" style="display:none;"></canvas>
 
-      </a-marker>
+  <a-scene embedded
+    arjs="sourceType: webcam; sourceWidth: 1280; sourceHeight: 720; displayWidth: 1280; displayHeight: 720; detectionMode: mono_and_matrix; matrixCodeType: 3x3; debugUIEnabled: false;"
+    renderer="antialias: true; logarithmicDepthBuffer: true; alpha: true;">
 
-      <a-entity camera look-controls="enabled: false" wasd-controls="enabled: false"></a-entity>
-    </a-scene>
+    <a-marker type="barcode" value="3" smooth="true" smoothCount="7" smoothTolerance="0.02" smoothThreshold="5">
 
-    <script>
-      // 1. Plugin per colorare lo sfondo del Canvas di Blu Scuro
-      const customBackgroundPlugin = {
-        id: 'customCanvasBackgroundColor',
-        beforeDraw: (chart) => {
-          const ctx = chart.canvas.getContext('2d');
-          ctx.save();
-          ctx.globalCompositeOperation = 'destination-over';
-          ctx.fillStyle = '#0f172a'; // Sfondo Blu Scuro
-          ctx.fillRect(0, 0, chart.width, chart.height);
-          ctx.restore();
-        }
-      };
+      <a-entity rotation="-75 0 0">
 
-      // 2. Setup iniziale della data
-      const formattaDataOra = () => {
-        const oggi = new Date();
-        const data = oggi.toLocaleDateString('it-IT');
-        const ora = oggi.toLocaleTimeString('it-IT', { hour12: false });
-        return `Ultimo aggiornamento: ${data}, ${ora}`;
-      };
+        <a-plane position="0 1.5 0" width="3.2" height="1.8" material="src: #ui-canvas; shader: flat;"></a-plane>
 
-      // 3. Inizializzazione di Chart.js sulla tela nascosta
-      const ctx = document.getElementById('ui-canvas').getContext('2d');
-      Chart.defaults.color = '#cbd5e1'; // Colore grigio chiaro per tutti i testi di base
-      Chart.defaults.font.family = 'sans-serif';
+      </a-entity>
 
-      const chart = new Chart(ctx, {
-          type: 'line',
-          data: {
-              labels: ['-10s', '-8s', '-6s', '-4s', '-2s', 'Ora'],
-              datasets: [{
-                  label: 'Potenza Assorbita (kW)',
-                  data: [15.2, 15.5, 16.1, 15.8, 16.5, 16.2],
-                  borderColor: '#0ea5e9', // Azzurro elettrico
-                  backgroundColor: 'rgba(14, 165, 233, 0.2)',
-                  borderWidth: 6,
-                  tension: 0.4, // Curva morbida
-                  fill: true,
-                  pointRadius: 8,
-                  pointBackgroundColor: '#ffffff'
-              }]
+    </a-marker>
+
+    <a-entity camera look-controls="enabled: false" wasd-controls="enabled: false"></a-entity>
+  </a-scene>
+
+  <script>
+    // 1. Plugin per colorare lo sfondo del Canvas di Blu Scuro
+    const customBackgroundPlugin = {
+      id: 'customCanvasBackgroundColor',
+      beforeDraw: (chart) => {
+        const ctx = chart.canvas.getContext('2d');
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-over';
+        ctx.fillStyle = '#0f172a'; // Sfondo Blu Scuro
+        ctx.fillRect(0, 0, chart.width, chart.height);
+        ctx.restore();
+      }
+    };
+
+    // 2. Setup iniziale della data
+    const formattaDataOra = () => {
+      const oggi = new Date();
+      const data = oggi.toLocaleDateString('it-IT');
+      const ora = oggi.toLocaleTimeString('it-IT', { hour12: false });
+      return `Ultimo aggiornamento: ${data}, ${ora}`;
+    };
+
+    // 3. Inizializzazione di Chart.js sulla tela nascosta
+    const ctx = document.getElementById('ui-canvas').getContext('2d');
+    Chart.defaults.color = '#cbd5e1'; // Colore grigio chiaro per tutti i testi di base
+    Chart.defaults.font.family = 'sans-serif';
+
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['-10s', '-8s', '-6s', '-4s', '-2s', 'Ora'],
+        datasets: [{
+          label: 'Potenza Assorbita (kW)',
+          data: [15.2, 15.5, 16.1, 15.8, 16.5, 16.2],
+          borderColor: '#0ea5e9', // Azzurro elettrico
+          backgroundColor: 'rgba(14, 165, 233, 0.2)',
+          borderWidth: 6,
+          tension: 0.4, // Curva morbida
+          fill: true,
+          pointRadius: 8,
+          pointBackgroundColor: '#ffffff'
+        }]
+      },
+      options: {
+        responsive: false, // Disabilitato perché le dimensioni le dettiamo in pixel fissi
+        animation: { duration: 500 },
+        layout: {
+          padding: { top: 40, right: 60, bottom: 40, left: 40 }
+        },
+        plugins: {
+          customCanvasBackgroundColor: true,
+          legend: {
+            display: true,
+            labels: { font: { size: 24 } }
           },
-          options: {
-              responsive: false, // Disabilitato perché le dimensioni le dettiamo in pixel fissi
-              animation: { duration: 500 },
-              layout: {
-                  padding: { top: 40, right: 60, bottom: 40, left: 40 }
-              },
-              plugins: {
-                  customCanvasBackgroundColor: true,
-                  legend: { 
-                      display: true, 
-                      labels: { font: { size: 24 } } 
-                  },
-                  title: {
-                      display: true,
-                      text: 'POTENZA MACCHINA M-03',
-                      color: '#ffffff',
-                      font: { size: 64, weight: 'bold' },
-                      padding: { bottom: 10 }
-                  },
-                  subtitle: {
-                      display: true,
-                      text: formattaDataOra(), // Es. Ultimo aggiornamento: 06/03/2026, 16:15:00
-                      color: '#94a3b8',
-                      font: { size: 32 },
-                      padding: { bottom: 40 }
-                  }
-              },
-              scales: {
-                  y: {
-                      min: 10,
-                      max: 25,
-                      ticks: { font: { size: 24 }, color: '#94a3b8' },
-                      grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                  },
-                  x: {
-                      ticks: { font: { size: 24 }, color: '#94a3b8' },
-                      grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                  }
-              }
+          title: {
+            display: true,
+            text: 'POTENZA MACCHINA M-03',
+            color: '#ffffff',
+            font: { size: 64, weight: 'bold' },
+            padding: { bottom: 10 }
           },
-          plugins: [customBackgroundPlugin]
-      });
-
-      // 4. Simulazione Backend: Generazione Dati Termodinamici
-      setInterval(() => {
-          // Genera un nuovo valore di potenza casuale tra 14.0 e 18.0 kW
-          const nuovaPotenza = (Math.random() * 4 + 14).toFixed(1);
-          
-          // Aggiorna l'array dei dati traslando il vecchio e inserendo il nuovo
-          chart.data.datasets[0].data.shift();
-          chart.data.datasets[0].data.push(nuovaPotenza);
-          
-          // Aggiorna il sottotitolo con l'orario effettivo di sistema
-          chart.options.plugins.subtitle.text = formattaDataOra();
-          
-          // Comando per ridisegnare la tela
-          chart.update();
-
-          // Forza A-Frame ad aggiornare la texture 3D (necessario su alcuni smartphone)
-          const piano = document.querySelector('a-plane');
-          if(piano && piano.getObject3D('mesh')) {
-              piano.getObject3D('mesh').material.map.needsUpdate = true;
+          subtitle: {
+            display: true,
+            text: formattaDataOra(), // Es. Ultimo aggiornamento: 06/03/2026, 16:15:00
+            color: '#94a3b8',
+            font: { size: 32 },
+            padding: { bottom: 40 }
           }
-      }, 2000); // Si aggiorna ogni 2 secondi
-    </script>
+        },
+        scales: {
+          y: {
+            min: 10,
+            max: 25,
+            ticks: { font: { size: 24 }, color: '#94a3b8' },
+            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+          },
+          x: {
+            ticks: { font: { size: 24 }, color: '#94a3b8' },
+            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+          }
+        }
+      },
+      plugins: [customBackgroundPlugin]
+    });
 
-  </body>
+    // 4. Simulazione Backend: Generazione Dati Termodinamici
+    setInterval(() => {
+      // Genera un nuovo valore di potenza casuale tra 14.0 e 18.0 kW
+      const nuovaPotenza = (Math.random() * 4 + 14).toFixed(1);
+
+      // Aggiorna l'array dei dati traslando il vecchio e inserendo il nuovo
+      chart.data.datasets[0].data.shift();
+      chart.data.datasets[0].data.push(nuovaPotenza);
+
+      // Aggiorna il sottotitolo con l'orario effettivo di sistema
+      chart.options.plugins.subtitle.text = formattaDataOra();
+
+      // Comando per ridisegnare la tela
+      chart.update();
+
+      // Forza A-Frame ad aggiornare la texture 3D (necessario su alcuni smartphone)
+      const piano = document.querySelector('a-plane');
+      if (piano && piano.getObject3D('mesh')) {
+        piano.getObject3D('mesh').material.map.needsUpdate = true;
+      }
+    }, 2000); // Si aggiorna ogni 2 secondi
+  </script>
+
+</body>
+
 </html>
